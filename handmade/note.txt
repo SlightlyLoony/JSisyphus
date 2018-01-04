@@ -1,0 +1,3 @@
+The files in this directory were created by hand, by Micah Roth at Sisyphus Industries.  He made these
+at my request, so that I'd have an example to use when writing code to generate such files automatically.
+I was quite stuck until he provided me with these!
