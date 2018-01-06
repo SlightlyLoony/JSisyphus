@@ -7,7 +7,7 @@ import com.slightlyloony.jsisyphus.tracks.Track;
  *
  * @author Tom Dilatush  tom@dilatush.com
  */
-public class Line {
+public class OrigLine {
 
     private static final double MAX_SEG_ANGLE = 0.05;  // radians...
 
@@ -15,7 +15,7 @@ public class Line {
     private final Pos to;
 
 
-    public Line( final Pos _fm, final Pos _to ) {
+    public OrigLine( final Pos _fm, final Pos _to ) {
         fm = _fm;
         to = _to;
     }

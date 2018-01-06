@@ -1,6 +1,6 @@
 package com.slightlyloony.jsisyphus.tracks;
 
-import com.slightlyloony.jsisyphus.Line;
+import com.slightlyloony.jsisyphus.OrigLine;
 import com.slightlyloony.jsisyphus.Pos;
 
 import java.io.IOException;
@@ -30,14 +30,14 @@ public class Test5 extends Track {
             Pos to2 = to1.add( Math.toRadians( 10 ), .25 );
             Pos to3 = to2.add( Math.toRadians( -20 ), .25 );
             Pos to4 = to3.add( Math.toRadians( 10 ), .25 );
-            new Line(  fm, to1 ).generate( this );
-            new Line( to1, to2 ).generate( this );
-            new Line( to2, to3 ).generate( this );
-            new Line( to3, to4 ).generate( this );
-            new Line( to4, to3 ).generate( this );
-            new Line( to3, to2 ).generate( this );
-            new Line( to2, to1 ).generate( this );
-            new Line( to1, fm  ).generate( this );
+            new OrigLine(  fm, to1 ).generate( this );
+            new OrigLine( to1, to2 ).generate( this );
+            new OrigLine( to2, to3 ).generate( this );
+            new OrigLine( to3, to4 ).generate( this );
+            new OrigLine( to4, to3 ).generate( this );
+            new OrigLine( to3, to2 ).generate( this );
+            new OrigLine( to2, to1 ).generate( this );
+            new OrigLine( to1, fm  ).generate( this );
 
             // advance 2.5 degrees...
             to = fm.add( Math.toRadians( 2.5 ), 0 );

@@ -1,6 +1,6 @@
 package com.slightlyloony.jsisyphus.tracks;
 
-import com.slightlyloony.jsisyphus.Line;
+import com.slightlyloony.jsisyphus.OrigLine;
 import com.slightlyloony.jsisyphus.Pos;
 
 import java.io.IOException;
@@ -43,7 +43,7 @@ public class Test6 extends Track {
 
             fm = to;
             to = fm.add( ANGULAR_LINE_LENGTH, -rll );
-            new Line( fm, to ).generate( this );
+            new OrigLine( fm, to ).generate( this );
         }
 
         // produce our file...

@@ -1,6 +1,6 @@
 package com.slightlyloony.jsisyphus.tracks;
 
-import com.slightlyloony.jsisyphus.Line;
+import com.slightlyloony.jsisyphus.OrigLine;
 import com.slightlyloony.jsisyphus.Pos;
 
 import java.io.IOException;
@@ -31,7 +31,7 @@ public class Test4 extends Track {
                 for( int i = 0; i < 4; i++ ) {
                     fm = to;
                     to = fm.add( Math.toRadians( 90 ), 0 );
-                    Line line = new Line( fm, to );
+                    OrigLine line = new OrigLine( fm, to );
                     line.generate( this );
                 }
 
@@ -46,7 +46,7 @@ public class Test4 extends Track {
             fm = to;
             double nr = Math.sqrt( Math.pow( fm.getRange(), 2) / 2 );
             to = fm.add( Math.toRadians( 45 ), nr - fm.getRange() );
-            Line line = new Line( fm, to );
+            OrigLine line = new OrigLine( fm, to );
             line.generate( this );
         }
 

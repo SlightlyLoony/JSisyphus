@@ -1,35 +1,40 @@
 package com.slightlyloony.jsisyphus;
 
-import com.slightlyloony.jsisyphus.tracks.*;
+import com.slightlyloony.jsisyphus.lines.Line;
+import com.slightlyloony.jsisyphus.lines.StraightLine;
+import com.slightlyloony.jsisyphus.positions.PolarPosition;
 
 import java.io.IOException;
 
-// TODO: have a position interface, with a Cartesian and a Polar implementation...
-// TODO: come up with Cartesian equation of Sisyphus line...
 // TODO: write README.MD file...
-// TODO: clamp write to [0,1] for range...
-// TODO: calculate error equation for line/arc/curve segments...
 // TODO: write arc class...
-// TODO: make a couple more straight-line patterns...
 
 public class Main {
 
     public static void main(String[] args) throws IOException {
 
-        // test tracks...
-        Track file = new Test1( "t01.thr" );
-        file.write();
-        file = new Test2( "t02.thr" );
-        file.write();
-        file = new Test3( "t03.thr" );
-        file.write();
-        file = new Test4( "t04.thr" );
-        file.write();
-        file = new Test5( "t05.thr" );
-        file.write();
-        file = new Test6( "t06.thr" );
-        file.write();
-        file = new Test7( "t07.thr" );
-        file.write();
+
+        DrawingContext dc = new DrawingContext();
+        double dt = 47 * Math.toRadians( 3.6 );
+        Line line = new StraightLine( new PolarPosition( 1, 0 ), new PolarPosition( 1, dt ) );
+//        for( int i = 0; i < 100; i++ ) {
+//            dc.draw( line );
+//            dc.stepRotation( dt );
+//        }
+//        dc.renderPNG( "test1" );
+//        dc.write( "test1.thr" );
+
+        dc.clear();
+        line = new StraightLine( new PolarPosition( 1, 0 ), new PolarPosition( 1, Math.toRadians( 180 ) ) );
+        for( int i = 0; i < 25; i++ ) {
+            dc.setTranslation( new PolarPosition( 1 - i/25, Math.toRadians( 90 ) ) );
+            dc.draw( line );
+        }
+        for( int i = 0; i < 25; i++ ) {
+            dc.setTranslation( new PolarPosition( 1 - i/25, Math.toRadians( 270 ) ) );
+            dc.draw( line );
+        }
+        dc.renderPNG( "test2" );
+        dc.write( "test2.thr" );
     }
 }
