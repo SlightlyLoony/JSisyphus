@@ -31,7 +31,7 @@ public class StraightLine extends ALine implements Line {
             b = start.getY();
 
             // setup for point production...
-            pts = (int) Math.ceil( Math.abs(dy) / Common.MIN_POINT_SPACING );
+            pts = (int) Math.ceil( Math.abs(dy) / Common.VISUAL_RESOLUTION_SU );
             ppx = 0;
             ppy = dy / pts;
         }
@@ -43,7 +43,7 @@ public class StraightLine extends ALine implements Line {
 
             // setup for point production...
             double l = Math.hypot( dx, dy );
-            pts = (int) Math.ceil( l / Common.MIN_POINT_SPACING );
+            pts = (int) Math.ceil( l / Common.VISUAL_RESOLUTION_SU );
             double h = l / pts;
             ppx = h * dx / l;
             ppy = h * dy / l;

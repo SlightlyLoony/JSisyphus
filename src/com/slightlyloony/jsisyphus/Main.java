@@ -2,12 +2,14 @@ package com.slightlyloony.jsisyphus;
 
 import com.slightlyloony.jsisyphus.lines.Line;
 import com.slightlyloony.jsisyphus.lines.StraightLine;
+import com.slightlyloony.jsisyphus.positions.CartesianPosition;
 import com.slightlyloony.jsisyphus.positions.PolarPosition;
 
 import java.io.IOException;
 
 // TODO: write README.MD file...
 // TODO: write arc class...
+// TODO: write a concatenated line class...
 
 public class Main {
 
@@ -25,15 +27,20 @@ public class Main {
 //        dc.write( "test1.thr" );
 
         dc.clear();
-        line = new StraightLine( new PolarPosition( 1, 0 ), new PolarPosition( 1, Math.toRadians( 180 ) ) );
-        for( int i = 0; i < 25; i++ ) {
-            dc.setTranslation( new PolarPosition( 1 - i/25, Math.toRadians( 90 ) ) );
-            dc.draw( line );
+        int lines = 20;
+        double dx = 2.0 / (lines - 1);
+        Transformer t = new Transformer();
+        t.setAutoTranslate( true );
+        t.setReflectionAxis( Math.toRadians( 90 ) );
+        t.setTranslation( new CartesianPosition( 1, 1, 0 ) );
+        Line v = new StraightLine( new PolarPosition( 0, 0 ), new PolarPosition( 2, 0 ) );
+        Line h = new StraightLine( new PolarPosition( 0, 0 ), new PolarPosition( dx, Math.toRadians( -90 ) ) );
+        for( int i = 0; i < lines; i++ ) {
+            t.setReflection( (i & 1) == 0 );
+            dc.draw( v, t );
+            dc.draw( h, t );
         }
-        for( int i = 0; i < 25; i++ ) {
-            dc.setTranslation( new PolarPosition( 1 - i/25, Math.toRadians( 270 ) ) );
-            dc.draw( line );
-        }
+
         dc.renderPNG( "test2" );
         dc.write( "test2.thr" );
     }

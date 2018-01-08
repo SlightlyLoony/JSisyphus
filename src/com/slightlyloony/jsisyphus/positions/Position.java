@@ -17,6 +17,7 @@ package com.slightlyloony.jsisyphus.positions;
  */
 public interface Position {
 
+    Position CENTER = new CartesianPosition( 0, 0, 0 );
 
     double getRho();
     double getTheta();

@@ -19,43 +19,42 @@ public class SisyphusLine extends ALine implements Line {
         super( _start, _end );
 
         // calculate our line's coefficients...
-        m = (end.getRho() - start.getRho()) / (end.getTheta() - start.getTheta() );
+        double dt = end.getTheta() - start.getTheta();  // delta theta over the entire line (may be multiple revolutions)...
+        double dr = end.getRho() - start.getRho();  // delta rho over the entire line...
+        m = dr / dt;
         b = start.getRho() - m * start.getTheta();
 
-        // some setup...
+        // some setup for generating our points...
         Position current = start;
-        points.add( current );  // always add our starting point...
-        double ad = Math.signum( end.getTheta() - start.getTheta() );
-        double dd = Math.signum( end.getRho() - start.getRho() );
-        boolean done = false;
+        points.add( current );
 
-        while( !done ) {
+        // to improve accuracy, we'll do this in 1/8 revolution steps...
+        int steps = (int)((dt >= 0) ? Math.ceil( dt / (Math.PI / 4) ) : -Math.floor( dt / (Math.PI / 4 ) ));
+        double dtps = dt / steps;  // delta theta per step...
+        for( int step = 0; step < steps; step++ ) {
 
-            // find our next point...
-            double K = 1.2;  // our fudge factor...
-            double P = current.getRho();
-            double dt;
-            if( dd <= 0 ) {
-                dt = Common.MIN_POINT_SPACING / (K * (P + Math.abs(m)) );
+            // find rho at our end point...
+            double epr = m * (current.getTheta() + dtps ) + b;
+
+            // find the length of this segment of our line (approximation as arc of circle at max rho and same delta theta)...
+            double seglen = Math.abs( (dtps / 2 * Math.PI) * Math.max( epr, current.getRho() ) );
+
+            // calculate the number of points on this segment, and the delta theta per point...
+            int pps = (int) Math.ceil( seglen / Common.VISUAL_RESOLUTION_SU );
+            double dtpp = dtps / pps;
+
+            // generate the points on this segment...
+            for( int i = 0; i < pps; i++ ) {
+
+                double pr = m * (current.getTheta() + dtpp ) + b;
+                double pt = current.getTheta() + dtpp;
+                current = new PolarPosition( pr, pt );
+                points.add( current );
             }
-            else {
-                double a = Math.abs(m);
-                double b = P + Math.abs(m);
-                double c = -Common.MIN_POINT_SPACING/K;
-                dt = (-b + Math.sqrt( Math.pow( b, 2 ) - 4 * a * c )) / (2 * a);
-                double dt2 = (-b - Math.sqrt( Math.pow( b, 2 ) - 4 * a * c )) / (2 * a);
-            }
 
-            double nt = current.getTheta() + ad * dt;
-            if( ((ad >= 0) && (nt >= end.getTheta())) || ((ad < 0) && (nt <= end.getTheta())) ) {
-                    current = end;
-                    done = true;
-            }
-            else
-                current = new PolarPosition( m * nt + b, nt );
-
-            points.add( current );
         }
 
+        // force the actual end point as the last point, to eliminate any accumulated error...
+        points.set( points.size() - 1, end );
     }
 }

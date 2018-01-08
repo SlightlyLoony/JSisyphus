@@ -21,10 +21,7 @@ public class CartesianPosition extends APosition implements Position {
         double theta = Math.asin( _x / Math.hypot( _x, _y ) );
 
         if( _y < 0 ) {
-            theta = Math.toRadians( 180 ) - theta;
-        }
-        else if( _x < 0 ) {
-            theta = Math.toRadians( 360 ) + theta;
+            theta = Math.signum( theta) * Math.toRadians( 180 ) - theta;
         }
         theta += _turns * Math.toRadians( 360 );
 

@@ -25,7 +25,7 @@ public class PolarPosition extends APosition implements Position {
     }
 
 
-    private static long getTurns( final double _theta ) {
+    public static long getTurns( final double _theta ) {
         return (long) ((_theta >= 0) ? Math.floor( _theta / Math.toRadians( 360 ) ) : Math.ceil( _theta / Math.toRadians( 360 ) ));
     }
 }

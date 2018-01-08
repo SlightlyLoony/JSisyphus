@@ -4,7 +4,6 @@ import com.slightlyloony.jsisyphus.lines.ArbitraryLine;
 import com.slightlyloony.jsisyphus.lines.Line;
 import com.slightlyloony.jsisyphus.lines.SisyphusLine;
 import com.slightlyloony.jsisyphus.positions.CartesianPosition;
-import com.slightlyloony.jsisyphus.positions.PolarPosition;
 import com.slightlyloony.jsisyphus.positions.Position;
 
 import javax.imageio.ImageIO;
@@ -36,6 +35,8 @@ public class DrawingContext {
 
 
     public void write( final String _fileName ) throws IOException {
+        // TODO: clamp at rho == 1...
+        // TODO: optimize by removing points along circle (esp. at rho == 1)...
 
         StringBuilder out = new StringBuilder();
         for( Position vertice : vertices ) {
@@ -87,8 +88,13 @@ public class DrawingContext {
 
 
     public void draw( final Line _line ) {
+        draw( _line, Transformer.NOOP );
+    }
 
-        Line line = transform( _line );
+
+    public void draw( final Line _line, final Transformer _transformer ) {
+
+        Line line = _transformer.transform( _line );
 
         List<Position> points = line.getPoints();
         emit( line.getStart() );
@@ -142,7 +148,7 @@ public class DrawingContext {
 
         // check the error on all points on the line, starting with the first, middle, and end (as an optimization)...
         List<Position> points = _segment.getPoints();
-        double me = Common.MAX_ALLOWABLE_DRAWING_ERROR;
+        double me = Common.MAX_ALLOWABLE_DRAWING_ERROR_SU;
         int mi = points.size() >> 1;
         if( sl.getDistance( _segment.getStart() ) > me ) return false;
         if( sl.getDistance( _segment.getEnd() ) > me   ) return false;
@@ -152,38 +158,6 @@ public class DrawingContext {
         for( int i = mi + 1; i < points.size(); i++ )
             if( sl.getDistance( points.get( i ) ) > me ) return false;
         return true;
-    }
-
-
-    private Line transform( final Line _line ) {
-
-        // if we have no transformations, just leave things unchanged...
-        if( (rotation == 0) && translation.isCenter() )
-            return _line;
-
-        // handle the transformation...
-        Line result = _line;
-        List<Position> points = new ArrayList<>( _line.getPoints().size() );
-        points.addAll( _line.getPoints() );
-        for( int i = 0; i < points.size(); i++ ) {
-
-            // handle any translation...
-            if( !translation.isCenter() ) {
-                Position po = points.get( i );
-                Position p = new CartesianPosition( po.getX() + translation.getX(), po.getY() + translation.getY(), po.getTurns() + translation.getTurns() );
-                points.set( i, p );
-            }
-
-            // handle any rotation...
-            if( rotation != 0 ) {
-                Position po = points.get( i );
-                Position p = new PolarPosition( po.getRho(), po.getTheta() + rotation );
-                points.set( i, p );
-            }
-        }
-
-        result = new ArbitraryLine( points );
-        return result;
     }
 
 
@@ -221,5 +195,15 @@ public class DrawingContext {
         translation = new CartesianPosition( 0,0,0 );
         rotation = 0;
         vertices.clear();
+    }
+
+
+    public Position getEnd() {
+        return vertices.get( vertices.size() - 1 );
+    }
+
+
+    public Position getStart() {
+        return vertices.get( 0 );
     }
 }
