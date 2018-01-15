@@ -44,7 +44,7 @@ public class Transformer {
     }
 
 
-    public Line transform( final Line _line ) {
+    public Line transform( final DrawingContext _dc, final Line _line ) {
 
         // if we have no transformations, return with our argument unchanged...
         if( noop ) return _line;
@@ -93,15 +93,15 @@ public class Transformer {
             translation = points.get( points.size() - 1 );
         }
 
-        return new ArbitraryLine( points );
+        return new ArbitraryLine( _dc, points );
     }
 
 
     // Rotates the given theta by the given delta, returning the rotated angle in the same turn (revolution) as the given theta.
     private double rotate( final double _theta, final double _delta ) {
-        long turns = PolarPosition.getTurns( _theta );
+        long turns = Utils.getTurnsFromTheta( _theta );
         double result = _theta + _delta;
-        long newTurns = PolarPosition.getTurns( result );
+        long newTurns = Utils.getTurnsFromTheta( result );
         return result - newTurns * Math.PI * 2;
     }
 

@@ -23,8 +23,12 @@ public interface Position {
     double getTheta();
     double getX();
     double getY();
-    long getTurns();
+    int getTurns();
     boolean isCenter();
     Position add( final Position _step );
-    String toVertice();
+
+    double deltaX( final Position _from );
+    double deltaY( final Position _from );
+    double angleFrom( final Position _from );
+    double distanceFrom( final Position _from );
 }

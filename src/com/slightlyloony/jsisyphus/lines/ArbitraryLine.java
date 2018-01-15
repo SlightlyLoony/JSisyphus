@@ -1,5 +1,6 @@
 package com.slightlyloony.jsisyphus.lines;
 
+import com.slightlyloony.jsisyphus.DrawingContext;
 import com.slightlyloony.jsisyphus.positions.Position;
 
 import java.util.List;
@@ -13,7 +14,7 @@ import java.util.List;
 public class ArbitraryLine extends ALine implements Line {
 
 
-    public ArbitraryLine( final List<Position> _points ) {
-        super( _points );
+    public ArbitraryLine( final DrawingContext _dc, final List<Position> _points ) {
+        super( _dc, _points );
     }
 }

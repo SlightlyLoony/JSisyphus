@@ -1,5 +1,7 @@
 package com.slightlyloony.jsisyphus.positions;
 
+import com.slightlyloony.jsisyphus.Utils;
+
 /**
  * Instances of this class represent positions on the Sisyphus table as specified in polar form (rho, theta).
  *
@@ -11,7 +13,7 @@ public class PolarPosition extends APosition implements Position {
 
 
     public PolarPosition( final double _rho, final double _theta ) {
-        super( _rho, _theta, getX( _rho, _theta ), getY( _rho, _theta ), getTurns( _theta ) );
+        super( _rho, _theta, getX( _rho, _theta ), getY( _rho, _theta ), Utils.getTurnsFromTheta( _theta ) );
     }
 
 
@@ -22,10 +24,5 @@ public class PolarPosition extends APosition implements Position {
 
     private static double getY( final double _rho, final double _theta ) {
         return _rho * Math.cos( _theta );
-    }
-
-
-    public static long getTurns( final double _theta ) {
-        return (long) ((_theta >= 0) ? Math.floor( _theta / Math.toRadians( 360 ) ) : Math.ceil( _theta / Math.toRadians( 360 ) ));
     }
 }

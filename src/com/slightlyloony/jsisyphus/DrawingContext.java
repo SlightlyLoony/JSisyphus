@@ -2,8 +2,7 @@ package com.slightlyloony.jsisyphus;
 
 import com.slightlyloony.jsisyphus.lines.ArbitraryLine;
 import com.slightlyloony.jsisyphus.lines.Line;
-import com.slightlyloony.jsisyphus.lines.SisyphusLine;
-import com.slightlyloony.jsisyphus.positions.CartesianPosition;
+import com.slightlyloony.jsisyphus.models.Model;
 import com.slightlyloony.jsisyphus.positions.Position;
 
 import javax.imageio.ImageIO;
@@ -17,20 +16,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Provides a drawing context for the Sisyphus table, supporting drawing with translation and rotation
+ * Provides a drawing context for the Sisyphus table, supporting drawing with translation and rotation.
+ *
+ * Instances of this class are mutable and <i>not</i> threadsafe.
+ *
  * @author Tom Dilatush  tom@dilatush.com
  */
 public class DrawingContext {
 
-    private Position translation;     // represents an offset from the center of the physical Sisyphus table...
-    private double rotation;          // represents a rotation from the zero heading on the physical Sisyphus table...
-    private List<Position> vertices;  // holds all the vertices that we've drawn...
+    private List<SisyphusFitter> paths;  // holds all the paths that we've drawn...
+    private double maxPointDistance;
+    private final Model model;
+    private final double maxFitErrorMeters;
+    private final double fitToleranceRho;
 
 
-    public DrawingContext() {
-        translation = new CartesianPosition( 0,0,0 );
-        rotation = 0;
-        vertices = new ArrayList<>();
+    public DrawingContext( final Model _model, final double _maxFitErrorMeters ) {
+        paths = new ArrayList<>();
+        model = _model;
+        maxFitErrorMeters = _maxFitErrorMeters;
+        fitToleranceRho = maxFitErrorMeters / model.tableRadiusMeters();
+        maxPointDistance = 0.001;  // approximately .2mm on A16 table...
     }
 
 
@@ -38,10 +44,12 @@ public class DrawingContext {
         // TODO: clamp at rho == 1...
         // TODO: optimize by removing points along circle (esp. at rho == 1)...
 
+        Position current = Position.CENTER;
         StringBuilder out = new StringBuilder();
-        for( Position vertice : vertices ) {
-            out.append( vertice.toVertice() );
-            out.append( "\n" );
+        out.append( "0 0\n" );  // force a starting (0,0) vertice...
+        for( SisyphusFitter path : paths ) {
+            out.append( path.toSisyphusString( current ) );
+            current = path.getEnd();
         }
         Path path = new File( _fileName ).toPath();
         byte[] bytes = out.toString().getBytes();
@@ -63,15 +71,11 @@ public class DrawingContext {
         g.fillOval( 0, 0, 2001, 2001 );
         g.setColor( Color.BLACK );
 
-        // draw a Sisyphus line for each adjacent vertice pair we have...
-        for( int i = 0; i < vertices.size() - 1; i++ ) {
-
-            Position start = vertices.get( i );
-            Position end = vertices.get( i + 1 );
-
-            Line line = new SisyphusLine( start, end );
+        // draw a spiral line for each path we have...
+        for( int i = 0; i < paths.size(); i++ ) {
 
             // draw a straight line for each pair of points within the Sisyphus line...
+            Line line = null;
             List<Position> points = line.getPoints();
             for( int j = 0; j < points.size() - 1; j++ ) {
 
@@ -83,7 +87,7 @@ public class DrawingContext {
             }
         }
 
-        ImageIO.write(bi, "PNG", new File(_fileName + ".png"));
+        ImageIO.write(bi, "PNG", new File( _fileName ));
     }
 
 
@@ -94,7 +98,7 @@ public class DrawingContext {
 
     public void draw( final Line _line, final Transformer _transformer ) {
 
-        Line line = _transformer.transform( _line );
+        Line line = _transformer.transform( this, _line );
 
         List<Position> points = line.getPoints();
         emit( line.getStart() );
@@ -112,7 +116,7 @@ public class DrawingContext {
             int lowestCant = last + 1 - i;
             Line seg = null;
             while( !done ) {
-                seg = new ArbitraryLine( points.subList( i, si + i + 1 ) );
+                seg = new ArbitraryLine( this, points.subList( i, si + i + 1 ) );
                 boolean canDraw = testDrawingFit( seg );
                 if( canDraw ) {
                     highestCan = si;
@@ -135,75 +139,57 @@ public class DrawingContext {
 
 
     private void emit( final Position _vertice ) {
-        if( (vertices.size() > 0) && (_vertice.equals( vertices.get( vertices.size() - 1 ) )))
-            return;
-        vertices.add( _vertice );
+//        if( (vertices.size() > 0) && (_vertice.equals( vertices.get( vertices.size() - 1 ) )))
+//            return;
+//        vertices.add( _vertice );
     }
 
 
     private boolean testDrawingFit( final Line _segment ) {
 
-        // the line we're comparing with...
-        Line sl = new SisyphusLine( _segment.getStart(), _segment.getEnd() );
-
-        // check the error on all points on the line, starting with the first, middle, and end (as an optimization)...
-        List<Position> points = _segment.getPoints();
-        double me = Common.MAX_ALLOWABLE_DRAWING_ERROR_SU;
-        int mi = points.size() >> 1;
-        if( sl.getDistance( _segment.getStart() ) > me ) return false;
-        if( sl.getDistance( _segment.getEnd() ) > me   ) return false;
-        if( sl.getDistance( points.get( mi ) ) > me    ) return false;
-        for( int i = 1; i < mi; i++ )
-            if( sl.getDistance( points.get( i ) ) > me ) return false;
-        for( int i = mi + 1; i < points.size(); i++ )
-            if( sl.getDistance( points.get( i ) ) > me ) return false;
+//        // the line we're comparing with, using the shortest direction...
+//        double et = _segment.getEnd().getTheta();
+//        double st = _segment.getStart().getTheta();
+//        double dt = et - et ;
+//        boolean direction = et >= st;
+//        if( Math.signum( st ) != Math.signum( et ) ) {
+//            if( dt > Math.PI ) {
+//                direction = !direction;
+//            }
+//        }
+//        SisyphusFitter sp = new SisyphusFitter( _segment.getStart(), _segment.getEnd() );
+//
+//        // check the error on all points on the line, starting with the first, middle, and end (as an optimization)...
+//        List<Position> points = _segment.getPoints();
+//        double me = Common.MAX_ALLOWABLE_DRAWING_ERROR_SU;
+//        int mi = points.size() >> 1;
+//        if( sp.distance( _segment.getStart() ) > me ) return false;
+//        if( sp.distance( _segment.getEnd() ) > me   ) return false;
+//        if( sp.distance( points.get( mi ) ) > me    ) return false;
+//        for( int i = 1; i < mi; i++ )
+//            if( sp.distance( points.get( i ) ) > me ) return false;
+//        for( int i = mi + 1; i < points.size(); i++ )
+//            if( sp.distance( points.get( i ) ) > me ) return false;
         return true;
     }
 
 
-    public void stepTranslation( final Position _step ) {
-        translation = translation.add( _step );
-    }
-
-
-    public void stepRotation( final double _step ) {
-        rotation += _step;
-    }
-
-
-    public Position getTranslation() {
-        return translation;
-    }
-
-
-    public void setTranslation( final Position _translation ) {
-        translation = _translation;
-    }
-
-
-    public double getRotation() {
-        return rotation;
-    }
-
-
-    public void setRotation( final double _rotation ) {
-        rotation = _rotation;
-    }
-
-
     public void clear() {
-        translation = new CartesianPosition( 0,0,0 );
-        rotation = 0;
-        vertices.clear();
+        paths.clear();
     }
 
 
-    public Position getEnd() {
-        return vertices.get( vertices.size() - 1 );
+    public double getMaxPointDistance() {
+        return maxPointDistance;
     }
 
 
-    public Position getStart() {
-        return vertices.get( 0 );
+    public void setMaxPointDistance( final double _maxPointDistance ) {
+        maxPointDistance = _maxPointDistance;
+    }
+
+
+    public double getFitToleranceRho() {
+        return fitToleranceRho;
     }
 }

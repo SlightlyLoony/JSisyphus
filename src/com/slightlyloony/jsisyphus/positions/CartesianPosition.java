@@ -1,12 +1,14 @@
 package com.slightlyloony.jsisyphus.positions;
 
+import com.slightlyloony.jsisyphus.Utils;
+
 /**
  * @author Tom Dilatush  tom@dilatush.com
  */
 public class CartesianPosition extends APosition implements Position {
 
 
-    public CartesianPosition( final double _x, final double _y, final long _turns ) {
+    public CartesianPosition( final double _x, final double _y, final int _turns ) {
         super( getRho( _x, _y ), getTheta( _x, _y, _turns ), _x, _y, _turns );
     }
 
@@ -18,12 +20,11 @@ public class CartesianPosition extends APosition implements Position {
 
     private static double getTheta( final double _x, final double _y, final long _turns ) {
 
-        double theta = Math.asin( _x / Math.hypot( _x, _y ) );
+        // compute the angle for all positive _y...
+        double theta = Utils.getTheta( _x, _y );
 
-        if( _y < 0 ) {
-            theta = Math.signum( theta) * Math.toRadians( 180 ) - theta;
-        }
-        theta += _turns * Math.toRadians( 360 );
+        // correct it for the number of turns...
+        theta += _turns * Math.PI * 2;
 
         return theta;
     }

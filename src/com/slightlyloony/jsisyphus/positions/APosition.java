@@ -11,10 +11,10 @@ public class APosition implements Position {
     protected final double theta;
     protected final double x;
     protected final double y;
-    protected final long turns;
+    protected final int turns;
 
 
-    public APosition( final double _rho, final double _theta, final double _x, final double _y, final long _turns ) {
+    public APosition( final double _rho, final double _theta, final double _x, final double _y, final int _turns ) {
         rho = _rho;
         theta = _theta;
         x = _x;
@@ -53,8 +53,48 @@ public class APosition implements Position {
     }
 
 
-    public long getTurns() {
+    public int getTurns() {
         return turns;
+    }
+
+
+    @Override
+    public double deltaX( final Position _from ) {
+        return x - _from.getX();
+    }
+
+
+    @Override
+    public double deltaY( final Position _from ) {
+        return x - _from.getY();
+    }
+
+
+    @Override
+    public double angleFrom( final Position _from ) {
+        return getTheta( deltaX( _from ), deltaY( _from ) );
+    }
+
+
+    @Override
+    public double distanceFrom( final Position _from ) {
+        return Math.hypot( x - _from.getX(), y - _from.getY() );
+    }
+
+
+    // returns the angle, [-pi..pi], represented by the given delta x and delta y values...
+    protected static double getTheta( final double _dx, final double _dy ) {
+
+        // handle the special case of no distance...
+        if( (_dx == 0) && (_dy == 0) ) return 0;
+
+        // compute the angle for all positive _dy...
+        double theta = Math.asin( _dx / Math.hypot( _dx, _dy ) );
+
+        // correct the angle if _dy is actually negative...
+        if( _dy < 0 ) theta = Math.signum( theta) * Math.PI - theta;
+
+        return theta;
     }
 
 
@@ -68,11 +108,6 @@ public class APosition implements Position {
                 "," +
                 Math.toDegrees( theta ) +
                 ")";
-    }
-
-
-    public String toVertice() {
-        return theta + " " + Math.max( 0, Math.min( 1, rho ) );
     }
 
 
