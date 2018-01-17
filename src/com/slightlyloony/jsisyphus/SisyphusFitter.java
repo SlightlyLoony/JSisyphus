@@ -14,13 +14,13 @@ import java.util.List;
  */
 public class SisyphusFitter {
 
-    private final Position start;
-    private final Position end;
-    private final double m;
-    private final double b;
-    private final boolean isCircle;
-    private final boolean isRadial;
-    private final boolean isClockwise;
+//    private final Position start;
+//    private final Position end;
+//    private final double m;
+//    private final double b;
+//    private final boolean isCircle;
+//    private final boolean isRadial;
+//    private final boolean isClockwise;
     private final List<Position> points;
     private final DrawingContext dc;
     private final List<Position> vertices;
@@ -37,17 +37,17 @@ public class SisyphusFitter {
 
         points = _points;
         dc = _dc;
-        start = points.get( 0 );
-        end = points.get( points.size() - 1);
+//        start = points.get( 0 );
+//        end = points.get( points.size() - 1);
 
         // calculate our line's coefficients...
-        double dt = end.getTheta() - start.getTheta();  // delta theta over the entire line (may be multiple revolutions)...
-        double dr = end.getRho() - start.getRho();      // delta rho over the entire line...
-        isRadial = (dt == 0);
-        isCircle = (dr == 0);
-        isClockwise = (dt > 0);
-        m = dr / dt;
-        b = start.getRho() - m * start.getTheta();
+//        double dt = end.getTheta() - start.getTheta();  // delta theta over the entire line (may be multiple revolutions)...
+//        double dr = end.getRho() - start.getRho();      // delta rho over the entire line...
+//        isRadial = (dt == 0);
+//        isCircle = (dr == 0);
+//        isClockwise = (dt > 0);
+//        m = dr / dt;
+//        b = start.getRho() - m * start.getTheta();
 
         vertices = new ArrayList<>();
         fitTolerance = dc.getFitToleranceRho();
@@ -55,26 +55,42 @@ public class SisyphusFitter {
 
 
     /**
-     * Returns a string representation of this path, formatted as the Sisyphus table requires.  If the starting point equals the given current position, then
-     * just one line of text is emitted, representing the ending point of this path.  If the starting point does not equal the given current position, then a
-     * second line of text is emitted first, representing the path from the current position to the start point of this path.
-     *
-     * @param _current the current position of the ball on the Sisyphus table.
-     * @return the string representation.
+     * Returns a list of positions, each of which represents a vertice of a line to draw on the Sisyphus table.
+     * @return
      */
-    public String toSisyphusString( final Position _current ) {
-        StringBuilder sb = new StringBuilder();
-        if( !_current.equals( start ) ) {
-            sb.append( start.getTheta() );
-            sb.append( ' ' );
-            sb.append( start.getRho() );
-            sb.append( '\n' );
+    public void generate() {
+        int last = points.size() - 1;
+        int current = 0;  // start at the beginning!
+        while( current < last ) {
+
+            // get our start point...
+            Position start = points.get( current );
+
+            // do a binary search to find the longest segment we can draw as a Sisyphus line...
+            boolean done = false;
+            int probe = last;
+            int highestCan = current + 1;
+            int lowestCant = last + 1;
+            while( !done ) {
+                boolean canDraw = isOn( current, probe );
+                if( canDraw ) {
+                    highestCan = probe;
+                    probe = probe + ((lowestCant - probe ) >> 1);
+                }
+                else {
+                    lowestCant = probe;
+                    probe = highestCan + ((probe - (highestCan + 1)) >> 1);
+                }
+                done = (lowestCant - highestCan == 1);
+            }
+
+            // emit the vertice...
+            vertices.add( points.get( highestCan ) );
+
+            // move to the next segment...
+            current = highestCan;
         }
-        sb.append( end.getTheta() );
-        sb.append( ' ' );
-        sb.append( end.getRho() );
-        sb.append( '\n' );
-        return sb.toString();
+
     }
 
 
@@ -108,6 +124,7 @@ public class SisyphusFitter {
             new SegResult( 1, 3, false ),
             new SegResult( 2, 3, false ),
     };
+    private static final int MAX_ITERATIONS = 25;
     /**
      * Returns true if the line defined by the start and end indices into the points held by this instance fits (within fit tolerance) the path that the
      * Sisyphus table would make from the same start and end points.
@@ -116,10 +133,22 @@ public class SisyphusFitter {
      */
     public boolean isOn( final int _start, final int _end ) {
 
+        // some setup...
+        Position start = points.get( _start );
+        Position end = points.get( _end );
+        double ldt = end.getTheta() - start.getTheta();  // delta theta over the entire line (may be multiple revolutions)...
+        double ldr = end.getRho() - start.getRho();      // delta rho over the entire line...
+        boolean isRadial = (ldt == 0);
+        boolean isCircle = (ldr == 0);
+        boolean isClockwise = (ldt > 0);
+        double m = ldr / ldt;
+        double b = start.getRho() - m * start.getTheta();
+
         // iterate over all the points in this line, testing them in order from start to end...
         Vertice lastFit = new Vertice();
         lastFit.rho = points.get( _start ).getRho();
         lastFit.theta = points.get( _start ).getTheta();
+        calcXY( lastFit );
         for( int p = _start + 1; p <= _end; p++ ) {
 
             Position testPoint = points.get( p );
@@ -138,7 +167,7 @@ public class SisyphusFitter {
 
             // if our line is a circle, then the closest point is (by definition!) the point on the circle at the same theta as our point...
             if( isCircle ) {
-                Position ct = getClosestTheta( testPoint.getTheta() );
+                Position ct = getClosestTheta( isClockwise, start, end, m, b, testPoint.getTheta() );
                 if( Math.hypot( testPoint.getX() - ct.getX(), testPoint.getY() - ct.getY() ) <= fitTolerance )
                     continue;
                 else
@@ -158,7 +187,7 @@ public class SisyphusFitter {
                 and calculate a point roughly two times the point spacing for the end.
              */
             double ss = lastFit.theta;
-            double se = getSegmentEnd( p, lastFit );
+            double se = getSegmentEnd( m, b, p, lastFit );
 
             /*
                 Now we use successive segmentation of our line to narrow down the size of the segment that approaches the closest to our point.  If at any time
@@ -178,15 +207,19 @@ public class SisyphusFitter {
 
             // initialize the starting segment's end points...
             st[0].theta = ss;
-            st[0].rho = getRhoFromTheta( ss );
+            st[0].rho = getRhoFromTheta( m, b, ss );
             st[3].theta = se;
-            st[3].rho = getRhoFromTheta( se );
+            st[3].rho = getRhoFromTheta( m, b, se );
 
-            for( int i = 0; i < 30; i++ ) {
+            for( int i = 0; i < MAX_ITERATIONS; i++ ) {
+
+                // make sure we didn't iterate too much!
+                if( i == MAX_ITERATIONS - 1 )
+                    throw new IllegalStateException( "Too many iterations!" );
 
                 // calculate our end points, checking for fit...
+                if( calcVertice( st[3], testPoint, lastFit ) ) break;  // doing this one first helps at the origin of the spiral...
                 if( calcVertice( st[0], testPoint, lastFit ) ) break;
-                if( calcVertice( st[3], testPoint, lastFit ) ) break;
 
                 /*
                     Here we check to see if we can be certain that we DON'T have a fit, if the aperture (the difference in the angles from our test point to the
@@ -195,7 +228,7 @@ public class SisyphusFitter {
                     the fit tolerance, than we know the point is not on the spiral.
                  */
 
-                // calculate the aperture; if it's under 5 degrees then we'll check for proof that we can't fit...
+                // calculate the aperture; if it's under 10 degrees then we'll check for proof that we can't fit...
                 double tp2s = Utils.getTheta( st[0].x - testPoint.getX(), st[0].y - testPoint.getY() );
                 double tp2e = Utils.getTheta( st[3].x - testPoint.getX(), st[3].y - testPoint.getY() );
                 double tpdt = Utils.deltaTheta( tp2s, tp2e );
@@ -203,7 +236,7 @@ public class SisyphusFitter {
                 if( aper < Math.toRadians( 10 ) ) {
 
                     // see if the spiral curve, relative to our test point, is convex or concave...
-                    boolean positiveDeltaSlope = (getRadialSlope( st[0].theta ) < getRadialSlope( st[3].theta ));
+                    boolean positiveDeltaSlope = (getRadialSlope( m, b, st[0].theta ) < getRadialSlope( m, b, st[3].theta ));
                     boolean positiveDeltaTheta = (tpdt >= 0);
                     boolean isConvex = (positiveDeltaSlope != positiveDeltaTheta);
 
@@ -218,25 +251,17 @@ public class SisyphusFitter {
                     double ha = x0 * Math.tan( aper );
 
                     // if fit tolerance < adjusted height, then we know we do NOT have a fit...
-                    if( fitTolerance < h + (isConvex ? ha : -ha) )
+                    if( fitTolerance < h + (isConvex ? ha : -ha) ) {
                         return logFail( p, i );
+                    }
                 }
 
                 // generate sub-segments, checking for fit as we go...
-                boolean useTheta = Math.abs( getRadialSlope( st[0].theta ) + getRadialSlope( st[3].theta ) ) > 2;
-                if( useTheta ) {
-                    double dt = (st[3].theta - st[0].theta) / 3;
-                    st[1].theta = st[0].theta + dt;
-                    st[1].rho = getRhoFromTheta( st[1].theta );
-                    st[2].theta = st[1].theta + dt;
-                    st[2].rho = getRhoFromTheta( st[2].theta );
-                } else {
-                    double dr = (st[3].rho - st[0].rho) / 3;
-                    st[1].rho = st[0].rho + dr;
-                    st[1].theta = getThetaFromRho( st[1].rho );
-                    st[2].rho = st[1].rho + dr;
-                    st[2].theta = getThetaFromRho( st[2].rho );
-                }
+                double dt = (st[3].theta - st[0].theta) / 3;
+                st[1].theta = st[0].theta + dt;
+                st[1].rho = getRhoFromTheta( m, b, st[1].theta );
+                st[2].theta = st[1].theta + dt;
+                st[2].rho = getRhoFromTheta( m, b, st[2].theta );
 
                 // calculate our vertice points, checking for fit as we go...
                 if( calcVertice( st[1], testPoint, lastFit ) ) break;
@@ -258,7 +283,7 @@ public class SisyphusFitter {
                 st[3].rho = st[sr.end].rho;
             }
 
-            // we get here if the point we were testing fit...
+            // we get here if the point fit within our specified number of iterations (thorugh a "break")...
         }
 
         // if we get here, then we've successfully tested every point...
@@ -267,22 +292,10 @@ public class SisyphusFitter {
 
 
     // returns theta of the segment end...
-    private double getSegmentEnd( final int _current, final Vertice _lastFit ) {
-
-        // calculate our sub-segment length...
-        double ssl = 2 * Math.hypot( points.get( _current ).getX() - points.get( _current - 1 ).getX(),
-                                     points.get( _current ).getY() - points.get( _current - 1 ).getY() );
-
-        double slope = getRadialSlope( _lastFit.theta );
-        boolean useTheta = Math.abs( slope ) > 1;
-
-        if( useTheta ) {
-            double dt = Math.sqrt( ssl * ssl / (1 + slope * slope) );
-            return _lastFit.theta + (isClockwise ? dt : -dt);
-        } else {
-            double dr = Math.sqrt( ssl * ssl / (1 + (1 / (slope * slope) ) ) );
-            return getThetaFromRho( _lastFit.rho + ((slope >= 0) ? dr : -dr) );
-        }
+    private double getSegmentEnd( final double _m, final double _b, final int _current, final Vertice _lastFit ) {
+        Position current = points.get( _current );
+        double dt = current.getTheta() - _lastFit.theta;
+        return _lastFit.theta + dt * 2;
     }
 
 
@@ -295,7 +308,7 @@ public class SisyphusFitter {
         sb.append( point.getX() );
         sb.append( ", " );
         sb.append( point.getY() );
-        sb.append( ") is on the spiral.  It took ");
+        sb.append( ") is not on the spiral.  It took ");
         sb.append( _iteration );
         sb.append( " iterations to determine this." );
 
@@ -307,9 +320,7 @@ public class SisyphusFitter {
     // Computes x, y, and distance for the given vertice, putting the results in the given segment table array.  Returns true if this point is within
     // the fit tolerance, false otherwise.
     private boolean calcVertice( final Vertice _vertice, final Position _testPoint, final Vertice _lastFit ) {
-
-        _vertice.x = Math.sin(_vertice.theta) * _vertice.rho;
-        _vertice.y = Math.cos(_vertice.theta) * _vertice.rho;
+        calcXY( _vertice );
         _vertice.distance = Math.hypot( _vertice.x - _testPoint.getX(), _vertice.y - _testPoint.getY() );
         boolean fits = _vertice.distance <= fitTolerance;
         if( fits ) {
@@ -320,83 +331,59 @@ public class SisyphusFitter {
     }
 
 
+    private void calcXY( final Vertice _vertice ) {
+        _vertice.x = Math.sin(_vertice.theta) * _vertice.rho;
+        _vertice.y = Math.cos(_vertice.theta) * _vertice.rho;
+    }
+
+
     // returns the point on this path with the theta closest to the given radial...
-    private Position getClosestTheta( final double _radial ) {
+    private Position getClosestTheta( final boolean _isClockwise, final Position _start, final Position _end, final double _m, final double _b, final double _radial ) {
 
         double theta = 0;
-        if( isClockwise ) {
-            if( _radial < start.getTheta() )
-                return start;
-            else if( _radial > end.getTheta() )
-                return end;
+        if( _isClockwise ) {
+            if( _radial < _start.getTheta() )
+                return _start;
+            else if( _radial > _end.getTheta() )
+                return _end;
             else
                 theta = _radial;
         }
         else {
-            if( _radial > start.getTheta() )
-                return start;
-            else if( _radial < end.getTheta() )
-                return end;
+            if( _radial > _start.getTheta() )
+                return _start;
+            else if( _radial < _end.getTheta() )
+                return _end;
             else
                 theta = _radial;
         }
 
-        return new PolarPosition( getRhoFromTheta( theta ), theta );
+        return new PolarPosition( getRhoFromTheta( _m, _b, theta ), theta );
     }
 
 
     // returns the point on this path with the closest rho...
-    private Position getClosestRho( final double _rho ) {
-        return getClosestTheta( getThetaFromRho( _rho ) );
+    private Position getClosestRho( final boolean _isClockwise, final Position _start, final Position _end, final double _m, final double _b, final double _rho ) {
+        return getClosestTheta( _isClockwise, _start, _end, _m, _b, getThetaFromRho( _m, _b, _rho ) );
     }
 
 
-    private double getRhoFromTheta( final double _theta ) {
-        return m * _theta + b;
+    private double getRhoFromTheta( final double _m, final double _b, final double _theta ) {
+        return _m * _theta + _b;
     }
 
 
-    private double getThetaFromRho( final double _rho) {
-        return (_rho - b) / m;
+    private double getThetaFromRho( final double _m, final double _b, final double _rho) {
+        return (_rho - _b) / _m;
     }
 
 
-    private double getRadialSlope( final double _theta ) {
-        return m / getRhoFromTheta( _theta );
+    private double getRadialSlope( final double _m, final double _b, final double _theta ) {
+        return _m / getRhoFromTheta( _m, _b, _theta );
     }
 
 
-    public Position getStart() {
-        return start;
-    }
-
-
-    public Position getEnd() {
-        return end;
-    }
-
-
-    public double getM() {
-        return m;
-    }
-
-
-    public double getB() {
-        return b;
-    }
-
-
-    public boolean isCircle() {
-        return isCircle;
-    }
-
-
-    public boolean isRadial() {
-        return isRadial;
-    }
-
-
-    public boolean isClockwise() {
-        return isClockwise;
+    public List<Position> getVertices() {
+        return vertices;
     }
 }

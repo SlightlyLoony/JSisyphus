@@ -111,6 +111,11 @@ public class APosition implements Position {
     }
 
 
+    public String toVertice() {
+        return theta + " " + rho + "\n";
+    }
+
+
     @Override
     public boolean equals( final Object _o ) {
         if( this == _o ) return true;

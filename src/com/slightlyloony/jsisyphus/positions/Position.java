@@ -26,6 +26,7 @@ public interface Position {
     int getTurns();
     boolean isCenter();
     Position add( final Position _step );
+    String toVertice();
 
     double deltaX( final Position _from );
     double deltaY( final Position _from );

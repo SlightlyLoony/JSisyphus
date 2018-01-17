@@ -1,8 +1,9 @@
 package com.slightlyloony.jsisyphus;
 
-import com.slightlyloony.jsisyphus.lines.ArbitraryLine;
+import com.slightlyloony.jsisyphus.lines.ArithmeticSpiral;
 import com.slightlyloony.jsisyphus.lines.Line;
 import com.slightlyloony.jsisyphus.models.Model;
+import com.slightlyloony.jsisyphus.positions.PolarPosition;
 import com.slightlyloony.jsisyphus.positions.Position;
 
 import javax.imageio.ImageIO;
@@ -24,19 +25,42 @@ import java.util.List;
  */
 public class DrawingContext {
 
-    private List<SisyphusFitter> paths;  // holds all the paths that we've drawn...
+    private List<Position> vertices;  // holds all the vertices we've drawn...
     private double maxPointDistance;
     private final Model model;
     private final double maxFitErrorMeters;
     private final double fitToleranceRho;
+    private final int pixelsPerRho;
 
 
-    public DrawingContext( final Model _model, final double _maxFitErrorMeters ) {
-        paths = new ArrayList<>();
+    public DrawingContext( final Model _model, final double _maxFitErrorMeters, final int _pixelsPerRho ) {
+        vertices = new ArrayList<>();
+        vertices.add( Position.CENTER );  // we always start in the middle!
+        vertices.add( Position.CENTER );  // for reasons unknown to us, it takes twice to reliably work...
         model = _model;
         maxFitErrorMeters = _maxFitErrorMeters;
         fitToleranceRho = maxFitErrorMeters / model.tableRadiusMeters();
-        maxPointDistance = 0.001;  // approximately .2mm on A16 table...
+        maxPointDistance = 0.01;  // approximately 2mm on A16 table...
+        pixelsPerRho = _pixelsPerRho;
+    }
+
+
+    /**
+     * Erases from the center to the given rho ending at the given position.  The theta of the given position is normalized to [-pi..pi], then adjusted for
+     * the needed number of turns.
+     *
+     * @param _end the final position...
+     */
+    public void eraseOut( final Position _end ) {
+
+        // figure out how many turns to make...
+        double drho = 1 / (model.tableRadiusMeters() * 1000);
+        double turns = Math.ceil( _end.getRho() / drho );
+        double endTheta = Math.PI * 2 * turns + Utils.normalizeTheta( _end.getTheta() );
+        Position newEnd = new PolarPosition( _end.getRho(), endTheta );
+
+        Line line = new ArithmeticSpiral( this, new PolarPosition( 0, 0 ), newEnd );
+        draw( line );
     }
 
 
@@ -46,10 +70,8 @@ public class DrawingContext {
 
         Position current = Position.CENTER;
         StringBuilder out = new StringBuilder();
-        out.append( "0 0\n" );  // force a starting (0,0) vertice...
-        for( SisyphusFitter path : paths ) {
-            out.append( path.toSisyphusString( current ) );
-            current = path.getEnd();
+        for( Position position : vertices ) {
+            out.append( position.toVertice() );
         }
         Path path = new File( _fileName ).toPath();
         byte[] bytes = out.toString().getBytes();
@@ -59,8 +81,8 @@ public class DrawingContext {
 
     public void renderPNG( final String _fileName ) throws IOException {
 
-        int width  = 2001;
-        int height = 2001;
+        int width  = 2 * pixelsPerRho;
+        int height = 2 * pixelsPerRho;
 
         BufferedImage bi = new BufferedImage( width, height, BufferedImage.TYPE_4BYTE_ABGR );
 
@@ -68,21 +90,21 @@ public class DrawingContext {
         g.setColor( Color.lightGray );
         g.fillRect( 0, 0, width + 1, height + 1 );
         g.setColor( Color.WHITE );
-        g.fillOval( 0, 0, 2001, 2001 );
+        g.fillOval( 0, 0, width + 1, height + 1 );
         g.setColor( Color.BLACK );
 
         // draw a spiral line for each path we have...
-        for( int i = 0; i < paths.size(); i++ ) {
+        for( int i = 1; i < vertices.size(); i++ ) {
 
             // draw a straight line for each pair of points within the Sisyphus line...
-            Line line = null;
+            Line line = new ArithmeticSpiral( this, vertices.get( i - 1 ), vertices.get( i ) );
             List<Position> points = line.getPoints();
             for( int j = 0; j < points.size() - 1; j++ ) {
 
-                int x1 = 1000 + (int) Math.round( points.get( j ).getX() * 1000 );
-                int y1 = 1000 + (int) Math.round( points.get( j ).getY() * -1000 );
-                int x2 = 1000 + (int) Math.round( points.get( j + 1 ).getX() * 1000 );
-                int y2 = 1000 + (int) Math.round( points.get( j + 1 ).getY() * -1000 );
+                int x1 = pixelsPerRho + (int) Math.round( points.get( j ).getX() * pixelsPerRho );
+                int y1 = pixelsPerRho + (int) Math.round( points.get( j ).getY() * -pixelsPerRho );
+                int x2 = pixelsPerRho + (int) Math.round( points.get( j + 1 ).getX() * pixelsPerRho );
+                int y2 = pixelsPerRho + (int) Math.round( points.get( j + 1 ).getY() * -pixelsPerRho );
                 g.drawLine( x1, y1, x2, y2 );
             }
         }
@@ -99,83 +121,16 @@ public class DrawingContext {
     public void draw( final Line _line, final Transformer _transformer ) {
 
         Line line = _transformer.transform( this, _line );
-
-        List<Position> points = line.getPoints();
-        emit( line.getStart() );
-        int last = points.size() - 1;
-        int i = 0;  // start at the beginning!
-        while( i < last ) {
-
-            // get our start point...
-            Position start = points.get( i );
-
-            // do a binary search to find the longest segment we can draw as a Sisyphus line...
-            boolean done = false;
-            int si = last - i;
-            int highestCan = 1;
-            int lowestCant = last + 1 - i;
-            Line seg = null;
-            while( !done ) {
-                seg = new ArbitraryLine( this, points.subList( i, si + i + 1 ) );
-                boolean canDraw = testDrawingFit( seg );
-                if( canDraw ) {
-                    highestCan = si;
-                    si = si + ((lowestCant - si ) >> 1);
-                }
-                else {
-                    lowestCant = si;
-                    si = highestCan + ((si - (highestCan + 1)) >> 1);
-                }
-                done = (lowestCant - highestCan == 1);
-            }
-
-            // emit the vertice...
-            emit( seg.getPoints().get( highestCan ) );
-
-            // move to the next segment...
-            i += highestCan;
+        SisyphusFitter fitter = new SisyphusFitter( line.getPoints(), this );
+        fitter.generate();
+        for( Position vertice : fitter.getVertices() ) {
+            vertices.add( vertice );
         }
     }
 
 
-    private void emit( final Position _vertice ) {
-//        if( (vertices.size() > 0) && (_vertice.equals( vertices.get( vertices.size() - 1 ) )))
-//            return;
-//        vertices.add( _vertice );
-    }
-
-
-    private boolean testDrawingFit( final Line _segment ) {
-
-//        // the line we're comparing with, using the shortest direction...
-//        double et = _segment.getEnd().getTheta();
-//        double st = _segment.getStart().getTheta();
-//        double dt = et - et ;
-//        boolean direction = et >= st;
-//        if( Math.signum( st ) != Math.signum( et ) ) {
-//            if( dt > Math.PI ) {
-//                direction = !direction;
-//            }
-//        }
-//        SisyphusFitter sp = new SisyphusFitter( _segment.getStart(), _segment.getEnd() );
-//
-//        // check the error on all points on the line, starting with the first, middle, and end (as an optimization)...
-//        List<Position> points = _segment.getPoints();
-//        double me = Common.MAX_ALLOWABLE_DRAWING_ERROR_SU;
-//        int mi = points.size() >> 1;
-//        if( sp.distance( _segment.getStart() ) > me ) return false;
-//        if( sp.distance( _segment.getEnd() ) > me   ) return false;
-//        if( sp.distance( points.get( mi ) ) > me    ) return false;
-//        for( int i = 1; i < mi; i++ )
-//            if( sp.distance( points.get( i ) ) > me ) return false;
-//        for( int i = mi + 1; i < points.size(); i++ )
-//            if( sp.distance( points.get( i ) ) > me ) return false;
-        return true;
-    }
-
-
     public void clear() {
-        paths.clear();
+        vertices.clear();
     }
 
 

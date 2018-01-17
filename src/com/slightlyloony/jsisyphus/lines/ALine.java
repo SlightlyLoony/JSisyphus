@@ -33,7 +33,6 @@ abstract class ALine implements Line {
         start = _start;
         end = _end;
         points = new ArrayList<>();
-
     }
 
 

@@ -18,7 +18,7 @@ public abstract class ATrack {
     protected ATrack( final String baseFileName ) {
         trackFileName = baseFileName + ".thr";
         pngFileName = baseFileName + ".png";
-        dc = new DrawingContext( Model.A16, 0.001);
+        dc = new DrawingContext( Model.A16, 0.001, 250);
     }
 
 

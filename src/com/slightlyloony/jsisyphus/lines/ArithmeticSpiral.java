@@ -1,7 +1,6 @@
 package com.slightlyloony.jsisyphus.lines;
 
 import com.slightlyloony.jsisyphus.DrawingContext;
-import com.slightlyloony.jsisyphus.positions.CartesianPosition;
 import com.slightlyloony.jsisyphus.positions.PolarPosition;
 import com.slightlyloony.jsisyphus.positions.Position;
 
@@ -17,6 +16,8 @@ public class ArithmeticSpiral extends ALine implements Line {
     private final double b;
     private final double deltaTheta;
     private final double deltaRho;
+    private final boolean isClockwise;
+
 
     public ArithmeticSpiral( final DrawingContext _dc, final Position _start, final Position _end ) {
         super( _dc, _start, _end );
@@ -26,39 +27,9 @@ public class ArithmeticSpiral extends ALine implements Line {
         deltaRho = end.getRho() - start.getRho();  // delta rho over the entire line...
         m = deltaRho / deltaTheta;
         b = start.getRho() - m * start.getTheta();
+        isClockwise = (deltaTheta >= 0);
 
-        // some setup for generating our points...
-        Position current = start;
-//        points.add( current );
-//
-//        // to improve accuracy, we'll do this in 1/8 revolution steps...
-//        int steps = (int)((deltaTheta >= 0) ? Math.ceil( deltaTheta / (Math.PI / 4) ) : -Math.floor( deltaTheta / (Math.PI / 4 ) ));
-//        double dtps = deltaTheta / steps;  // delta theta per step...
-//        for( int step = 0; step < steps; step++ ) {
-//
-//            // find rho at our end point...
-//            double epr = m * (current.getTheta() + dtps ) + b;
-//
-//            // find the length of this segment of our line (approximation as arc of circle at max rho and same delta theta)...
-//            double seglen = Math.abs( (dtps / 2 * Math.PI) * Math.max( epr, current.getRho() ) );
-//
-//            // calculate the number of points on this segment, and the delta theta per point...
-//            int pps = (int) Math.ceil( seglen / Common.VISUAL_RESOLUTION_SU );
-//            double dtpp = dtps / pps;
-//
-//            // generate the points on this segment...
-//            for( int i = 0; i < pps; i++ ) {
-//
-//                double pr = m * (current.getTheta() + dtpp ) + b;
-//                double pt = current.getTheta() + dtpp;
-//                current = new PolarPosition( pr, pt );
-//                points.add( current );
-//            }
-//
-//        }
-//
-//        // force the actual end point as the last point, to eliminate any accumulated error...
-//        points.set( points.size() - 1, end );
+        generate();
     }
 
 
@@ -72,14 +43,24 @@ public class ArithmeticSpiral extends ALine implements Line {
     @Override
     protected Position nextPoint( final Position _current ) {
 
-        // calculate the slope angle at the current theta...
-        double tm = _current.getTheta() - 0.001;
-        double tp = tm + 0.002;
-        double rm = m * tm + b;
-        double rp = m * tp + b;
-        Position ptm = new PolarPosition( rm, tm );
-        Position ptp = new PolarPosition( rp, tp );
-        double slopeAngle = new CartesianPosition( ptp.getX() - ptm.getX(), ptp.getY() - ptm.getY(), 0 ).getTheta();
+        // some setup...
+        double npr;
+        double npt;
+
+        // calculate the radial slope theta...
+        double rs = getRadialSlope( _current.getTheta() );
+
+        // if the slope is infinite, treat it specially...
+        if( Double.isInfinite( rs ) ) {
+
+            // our next point will be very near our radial...
+            npt = _current.getTheta() + .1;   // fixed tenth radian movement...
+            npr = getRhoFromTheta( npt );
+        }
+
+        // otherwise, we do it with a bit of trig...
+        else {
+            double slopeAngle = Math.atan( rs );
 
         /*
             We're solving an SAS triangle defined as follows:
@@ -91,11 +72,41 @@ public class ArithmeticSpiral extends ALine implements Line {
             C: angle formed by the slope and current theta
          */
 
-        // calculate the delta theta needed to get a segment of the desired length...
-        double C = Math.PI + _current.getTheta() - slopeAngle;
+            // our known elements...
+            double C = Math.PI - (Math.PI / 2 - slopeAngle);
+            double a = dc.getMaxPointDistance();
+            double b = _current.getRho();
+
+            // use law of cosines to find c...
+            double c = Math.sqrt( a * a + b * b - 2 * a * b * Math.cos( C ) );
+
+            // use law of cosines to find A, but limit it to a half-radian (about 30 degrees)...
+            double A = Math.min( 0.5, Math.acos( (b * b + c * c - a * a) / (2 * b * c) ) );
+            A = isClockwise ? A : -A;
+
+            // now get our next point's location, tentatively...
+            npt = _current.getTheta() + A;
+            npr = getRhoFromTheta( npt );
+
+            // if we reached the end, just return the end point...
+            if( isTerminal( A, _current.getTheta(), end.getTheta() ) ) return end;
+        }
+
+        return new PolarPosition( npr, npt );
+    }
 
 
+    private double getRhoFromTheta( final double _theta ) {
+        return m * _theta + b;
+    }
 
-        return super.nextPoint( _current );
+
+    private double getThetaFromRho( final double _rho) {
+        return (_rho - b) / m;
+    }
+
+
+    private double getRadialSlope( final double _theta ) {
+        return m / getRhoFromTheta( _theta );
     }
 }
