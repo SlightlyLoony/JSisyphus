@@ -1,7 +1,5 @@
 package com.slightlyloony.jsisyphus;
 
-import com.slightlyloony.jsisyphus.models.Model;
-
 import java.io.IOException;
 
 /**
@@ -18,7 +16,7 @@ public abstract class ATrack {
     protected ATrack( final String baseFileName ) {
         trackFileName = baseFileName + ".thr";
         pngFileName = baseFileName + ".png";
-        dc = new DrawingContext( Model.A16, 0.001, 250);
+        dc = new DrawingContext();
     }
 
 

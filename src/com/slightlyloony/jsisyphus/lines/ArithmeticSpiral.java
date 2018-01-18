@@ -17,6 +17,8 @@ public class ArithmeticSpiral extends ALine implements Line {
     private final double deltaTheta;
     private final double deltaRho;
     private final boolean isClockwise;
+    private final boolean isRadial;
+    private final boolean isCircle;
 
 
     public ArithmeticSpiral( final DrawingContext _dc, final Position _start, final Position _end ) {
@@ -27,6 +29,8 @@ public class ArithmeticSpiral extends ALine implements Line {
         deltaRho = end.getRho() - start.getRho();  // delta rho over the entire line...
         m = deltaRho / deltaTheta;
         b = start.getRho() - m * start.getTheta();
+        isRadial = (Math.abs( deltaTheta ) < 1.0E-12 );
+        isCircle = (Math.abs( deltaRho ) < 1.0E-12 );
         isClockwise = (deltaTheta >= 0);
 
         generate();
@@ -43,24 +47,36 @@ public class ArithmeticSpiral extends ALine implements Line {
     @Override
     protected Position nextPoint( final Position _current ) {
 
-        // some setup...
-        double npr;
-        double npt;
-
         // calculate the radial slope theta...
         double rs = getRadialSlope( _current.getTheta() );
 
-        // if the slope is infinite, treat it specially...
-        if( Double.isInfinite( rs ) ) {
+        // if we have a radial line, treat it specially...
+        if( isRadial ) {
+            boolean down = (deltaRho < 0);
+            double nrho = _current.getRho() + ( down ? -dc.getMaxPointDistance() : dc.getMaxPointDistance() );
+            if( (down && (nrho <= end.getRho())) || (!down && (nrho >= end.getRho()))) return end;
+            return new PolarPosition( nrho, _current.getTheta() );
+        }
 
-            // our next point will be very near our radial...
-            npt = _current.getTheta() + .1;   // fixed tenth radian movement...
-            npr = getRhoFromTheta( npt );
+        // if we have an arc of a circle, treat it specially...
+        else if( isCircle ) {
+            boolean anticlockwise = (deltaTheta < 0);
+            double dtheta = dc.getMaxPointDistance() * Math.PI / _current.getRho();
+            double ntheta = _current.getTheta() + (anticlockwise ? -dtheta : dtheta);
+            if( (anticlockwise && (ntheta <= end.getTheta())) || (!anticlockwise && (ntheta >= end.getTheta()))) return end;
+            return new PolarPosition( _current.getRho(), ntheta );
+        }
+
+        // if the slope is infinite, treat it specially - we're near the center and things are wonky...
+        else if( Double.isInfinite( rs ) ) {
+            boolean anticlockwise = (deltaTheta < 0);
+            double npt = _current.getTheta() + (anticlockwise ? -.1 : .1);   // fixed tenth radian movement...
+            double npr = getRhoFromTheta( npt );
+            return new PolarPosition( npr, npt );
         }
 
         // otherwise, we do it with a bit of trig...
-        else {
-            double slopeAngle = Math.atan( rs );
+        double slopeAngle = Math.atan( rs );
 
         /*
             We're solving an SAS triangle defined as follows:
@@ -72,25 +88,24 @@ public class ArithmeticSpiral extends ALine implements Line {
             C: angle formed by the slope and current theta
          */
 
-            // our known elements...
-            double C = Math.PI - (Math.PI / 2 - slopeAngle);
-            double a = dc.getMaxPointDistance();
-            double b = _current.getRho();
+        // our known elements...
+        double C = Math.PI - (Math.PI / 2 - slopeAngle);
+        double a = dc.getMaxPointDistance();
+        double b = _current.getRho();
 
-            // use law of cosines to find c...
-            double c = Math.sqrt( a * a + b * b - 2 * a * b * Math.cos( C ) );
+        // use law of cosines to find c...
+        double c = Math.sqrt( a * a + b * b - 2 * a * b * Math.cos( C ) );
 
-            // use law of cosines to find A, but limit it to a half-radian (about 30 degrees)...
-            double A = Math.min( 0.5, Math.acos( (b * b + c * c - a * a) / (2 * b * c) ) );
-            A = isClockwise ? A : -A;
+        // use law of cosines to find A, but limit it to a half-radian (about 30 degrees)...
+        double A = Math.min( 0.5, Math.acos( (b * b + c * c - a * a) / (2 * b * c) ) );
+        A = isClockwise ? A : -A;
 
-            // now get our next point's location, tentatively...
-            npt = _current.getTheta() + A;
-            npr = getRhoFromTheta( npt );
+        // now get our next point's location, tentatively...
+        double npt = _current.getTheta() + A;
+        double npr = getRhoFromTheta( npt );
 
-            // if we reached the end, just return the end point...
-            if( isTerminal( A, _current.getTheta(), end.getTheta() ) ) return end;
-        }
+        // if we reached the end, just return the end point...
+        if( isTerminal( A, npt, end.getTheta() ) ) return end;
 
         return new PolarPosition( npr, npt );
     }

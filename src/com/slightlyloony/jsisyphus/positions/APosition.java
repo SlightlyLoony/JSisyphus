@@ -28,11 +28,6 @@ public class APosition implements Position {
     }
 
 
-    public Position add( final Position _addend ) {
-        return new CartesianPosition( x + _addend.getX(), y + _addend.getY(), turns + _addend.getTurns() );
-    }
-
-
     public double getRho() {
         return rho;
     }
@@ -99,15 +94,19 @@ public class APosition implements Position {
 
 
     public String toString() {
-        return "Position: (x,y): (" +
+        return "Position: (x,y,t): (" +
                 x +
                 "," +
                 y +
+                "," +
+                turns +
                 ")  (rho,theta): (" +
                 rho +
                 "," +
+                theta +
+                " radians, " +
                 Math.toDegrees( theta ) +
-                ")";
+                " degrees)";
     }
 
 

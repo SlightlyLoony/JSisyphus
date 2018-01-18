@@ -58,7 +58,7 @@ public class StraightLine extends ALine implements Line {
             ppy = dy / pts;
 
             // terminate if we're within 10% of a dx of the line length...
-            tv = start.getY() - 0.1 * ppy;
+            tv = end.getY() - 0.1 * ppy;
         }
 
         generate();

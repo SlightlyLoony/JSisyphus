@@ -8,6 +8,7 @@ package com.slightlyloony.jsisyphus.models;
 public interface Model {
 
     public static final Model A16 = new A16();
+    public static final Model GENERIC = new GenericModel();
 
     double rhoStepsPerMeter();
     double thetaStepsPerRevolution();

@@ -2,7 +2,9 @@ package com.slightlyloony.jsisyphus;
 
 import com.slightlyloony.jsisyphus.lines.ArithmeticSpiral;
 import com.slightlyloony.jsisyphus.lines.Line;
+import com.slightlyloony.jsisyphus.lines.StraightLine;
 import com.slightlyloony.jsisyphus.models.Model;
+import com.slightlyloony.jsisyphus.positions.CartesianPosition;
 import com.slightlyloony.jsisyphus.positions.PolarPosition;
 import com.slightlyloony.jsisyphus.positions.Position;
 
@@ -25,42 +27,161 @@ import java.util.List;
  */
 public class DrawingContext {
 
+    private static final double DEFAULT_MAX_FIT_ERROR_METERS = 0.0005; // in meters...
+    private static final int    DEFAULT_PIXELS_PER_RHO       = 500;    // effectively the radius of the PNG in pixels...
+    private static final double DEFAULT_ERASE_SPACING        = 0.004;  // in meters...
+
     private List<Position> vertices;  // holds all the vertices we've drawn...
     private double maxPointDistance;
-    private final Model model;
-    private final double maxFitErrorMeters;
-    private final double fitToleranceRho;
-    private final int pixelsPerRho;
+    private Model model;
+    private double maxFitErrorMeters;
+    private double fitToleranceRho;
+    private int pixelsPerRho;
+    private Position currentPosition;
+    private double eraseSpacing;  // the erase spiral radial spacing in meters...
+    private final Transformer transformer;
 
 
-    public DrawingContext( final Model _model, final double _maxFitErrorMeters, final int _pixelsPerRho ) {
+    /**
+     * Creates a new instance of this class that assumes the given initial position of the ball on the Sisyphus table.
+     *
+     * @param _initialPosition The assumed initial position of the ball on the Sisyphus table.
+     */
+    public DrawingContext( final Position _initialPosition ) {
         vertices = new ArrayList<>();
-        vertices.add( Position.CENTER );  // we always start in the middle!
-        vertices.add( Position.CENTER );  // for reasons unknown to us, it takes twice to reliably work...
-        model = _model;
-        maxFitErrorMeters = _maxFitErrorMeters;
+        vertices.add( _initialPosition );  // for reasons unknown to us, the table seems to want the initial position twice...
+        vertices.add( _initialPosition );
+        currentPosition = _initialPosition;
+        model = Model.GENERIC;
+        maxFitErrorMeters = DEFAULT_MAX_FIT_ERROR_METERS;
         fitToleranceRho = maxFitErrorMeters / model.tableRadiusMeters();
         maxPointDistance = 0.01;  // approximately 2mm on A16 table...
-        pixelsPerRho = _pixelsPerRho;
+        pixelsPerRho = DEFAULT_PIXELS_PER_RHO;
+        eraseSpacing = DEFAULT_ERASE_SPACING;
+        transformer = new Transformer();
     }
 
 
     /**
-     * Erases from the center to the given rho ending at the given position.  The theta of the given position is normalized to [-pi..pi], then adjusted for
-     * the needed number of turns.
-     *
-     * @param _end the final position...
+     * Creates a new instance of this class that assumes the ball is at the center of the Sisyphus table.
      */
-    public void eraseOut( final Position _end ) {
+    public DrawingContext() {
+        this( Position.CENTER );
+    }
+
+
+    /**
+     * Erases from the current position to the given absolute position, spiraling either in or out depending on whether the "to" rho is less than or greater
+     * than the current position's rho.  Note that if there are multiple turns involved in the erasure, the end position's number of turns will be adjusted
+     * accordingly.  The X, Y position will be identical; only the number of turns may be adjusted.
+     *
+     * @param _absoluteEnd the absolute position to end the erase on.
+     */
+    public void eraseTo( final Position _absoluteEnd ) {
 
         // figure out how many turns to make...
-        double drho = 1 / (model.tableRadiusMeters() * 1000);
-        double turns = Math.ceil( _end.getRho() / drho );
-        double endTheta = Math.PI * 2 * turns + Utils.normalizeTheta( _end.getTheta() );
-        Position newEnd = new PolarPosition( _end.getRho(), endTheta );
-
-        Line line = new ArithmeticSpiral( this, new PolarPosition( 0, 0 ), newEnd );
+        double drhopt = eraseSpacing / model.tableRadiusMeters();  // gives us the change in rho per turn...
+        double drho = _absoluteEnd.getRho() - currentPosition.getRho();  // change in rho over the entire spiral...
+        double turns = Math.ceil( Math.abs( drho / drhopt ));  // gives us the number of turns we'll actually need...
+        boolean eraseClockwise = (drho < 0);
+        double dtheta = Utils.normalizeTheta( _absoluteEnd.getTheta() ) - Utils.normalizeTheta( currentPosition.getTheta() ); // delta theta after turns...
+        double endTheta = Math.PI * (eraseClockwise ? 2 : -2) * turns + currentPosition.getTheta() + dtheta;
+        Position newEnd = new PolarPosition( _absoluteEnd.getRho(), endTheta );
+        Line line = new ArithmeticSpiral( this, currentPosition, newEnd );
         draw( line );
+    }
+
+
+    /**
+     * Erases from the current position to the given relative X, Y, turns position, spiraling either in or out depending on whether the "to" rho is less than
+     * or greater than the current position's rho.
+     *
+     * @param dX the difference in x between the ending position and the current position.
+     * @param dY the difference in y between the ending position and the current position.
+     * @param dTurns the difference in turns between the ending position and the current position.
+     */
+    public void eraseToXYT( final double dX, final double dY, final int dTurns ) {
+        eraseTo( new CartesianPosition( currentPosition.getX() + dX, currentPosition.getY() + dY, currentPosition.getTurns() + dTurns ) );
+    }
+
+
+    /**
+     * Erases from the current position to the given relative rho, theta position, spiraling either in or out depending on whether the "to" rho is less than
+     * or greater than the current position's rho.
+     *
+     * @param dRho the difference in rho between the ending position and the current position.
+     * @param dTheta the difference in theta between the ending position and the current position.
+     */
+    public void eraseToRT( final double dRho, final double dTheta ) {
+        eraseTo( new PolarPosition( currentPosition.getRho() + dRho, currentPosition.getTheta() + dTheta ) );
+    }
+
+
+    /**
+     * Draws a straight line from the current position to the given absolute line end position.
+     *
+     * @param _absoluteEnd the relative position for the end of the new line.
+     */
+    public void lineTo( final Position _absoluteEnd ) {
+        Line line = new StraightLine( this, currentPosition, _absoluteEnd );
+        draw( line );
+    }
+
+
+    /**
+     * Draws a straight line from the current position to the point at the given delta x, delta y, and delta turns from the current position.
+     *
+     * @param dX the difference in x between the ending position and the current position.
+     * @param dY the difference in y between the ending position and the current position.
+     * @param dTurns the difference in turns between the ending position and the current position.
+     */
+    public void lineToXYT( final double dX, final double dY, final int dTurns ) {
+        lineTo( new CartesianPosition( currentPosition.getX() + dX, currentPosition.getY() + dY, currentPosition.getTurns() + dTurns ) );
+    }
+
+
+    /**
+     * Draws a straight line from the current position to the point at the given delta rho and delta theta from the current position.
+     *
+     * @param dRho the difference in rho between the ending position and the current position.
+     * @param dTheta the difference in theta between the ending position and the current position.
+     */
+    public void lineToRT( final double dRho, final double dTheta ) {
+        lineTo( new PolarPosition( currentPosition.getRho() + dRho, currentPosition.getTheta() + dTheta ) );
+    }
+
+
+    /**
+     * Draws an arithmetic spiral from the current position to the given absolute line end position.
+     *
+     * @param _absoluteEnd the relative position for the end of the new line.
+     */
+    public void spiralTo( final Position _absoluteEnd ) {
+        Line line = new ArithmeticSpiral( this, currentPosition, _absoluteEnd );
+        draw( line );
+    }
+
+
+    /**
+     * Draws an arithmetic spiral from the current position to the point at the given delta x, delta y, and delta turns from the current position.
+     *
+     * @param dX the difference in x between the ending position and the current position.
+     * @param dY the difference in y between the ending position and the current position.
+     * @param dTurns the difference in turns between the ending position and the current position.
+     */
+    public void spiralToXYT( final double dX, final double dY, final int dTurns ) {
+        spiralTo( new CartesianPosition( currentPosition.getX() + dX, currentPosition.getY() + dY, currentPosition.getTurns() + dTurns ) );
+    }
+
+
+    /**
+     * Draws an arithmetic spiral from the current position to the point at the given delta rho and delta theta from the current position.
+     *
+     * @param dRho the difference in rho between the ending position and the current position.
+     * @param dTheta the difference in theta between the ending position and the current position.
+     */
+    public void spiralToRT( final double dRho, final double dTheta ) {
+        spiralTo( new PolarPosition( currentPosition.getRho() + dRho, currentPosition.getTheta() + dTheta ) );
     }
 
 
@@ -73,6 +194,7 @@ public class DrawingContext {
         for( Position position : vertices ) {
             out.append( position.toVertice() );
         }
+        out.append( vertices.get( vertices.size() - 1 ).toVertice() );  // repeat the last vertice; we don't know why this is needed...
         Path path = new File( _fileName ).toPath();
         byte[] bytes = out.toString().getBytes();
         Files.write( path, bytes );
@@ -96,7 +218,7 @@ public class DrawingContext {
         // draw a spiral line for each path we have...
         for( int i = 1; i < vertices.size(); i++ ) {
 
-            // draw a straight line for each pair of points within the Sisyphus line...
+            // draw a spiral line for each pair of points within the Sisyphus line...
             Line line = new ArithmeticSpiral( this, vertices.get( i - 1 ), vertices.get( i ) );
             List<Position> points = line.getPoints();
             for( int j = 0; j < points.size() - 1; j++ ) {
@@ -114,18 +236,21 @@ public class DrawingContext {
 
 
     public void draw( final Line _line ) {
-        draw( _line, Transformer.NOOP );
+        Line line = transformer.transform( this, _line );
+        SisyphusFitter fitter = new SisyphusFitter( line.getPoints(), this );
+        fitter.generate();
+        vertices.addAll( fitter.getVertices() );
+        currentPosition = line.getEnd();
     }
 
 
-    public void draw( final Line _line, final Transformer _transformer ) {
+    public void rotateTo( final double _theta ) {
+        transformer.setRotation( _theta );
+    }
 
-        Line line = _transformer.transform( this, _line );
-        SisyphusFitter fitter = new SisyphusFitter( line.getPoints(), this );
-        fitter.generate();
-        for( Position vertice : fitter.getVertices() ) {
-            vertices.add( vertice );
-        }
+
+    public void rotateBy( final double _deltaTheta ) {
+        transformer.setRotation( transformer.getRotation() + _deltaTheta );
     }
 
 
@@ -146,5 +271,61 @@ public class DrawingContext {
 
     public double getFitToleranceRho() {
         return fitToleranceRho;
+    }
+
+
+    public Model getModel() {
+        return model;
+    }
+
+
+    public void setModel( final Model _model ) {
+        model = _model;
+    }
+
+
+    public double getMaxFitErrorMeters() {
+        return maxFitErrorMeters;
+    }
+
+
+    public void setMaxFitErrorMeters( final double _maxFitErrorMeters ) {
+        maxFitErrorMeters = _maxFitErrorMeters;
+    }
+
+
+    public int getPixelsPerRho() {
+        return pixelsPerRho;
+    }
+
+
+    /**
+     * Sets the number of pixels per rho unit for the generation of PNG files.  Effectively this sets the radius of the generated file in pixels.  For
+     * instance, a value of 1000 pixels per rho would result in a 2000 x 2000 pixel PNG file.
+     *
+     * @param _pixelsPerRho the number of PNG file pixels in one rho unit.
+     */
+    public void setPixelsPerRho( final int _pixelsPerRho ) {
+        pixelsPerRho = _pixelsPerRho;
+    }
+
+
+    /**
+     * Returns the current absolute position of the ball on the Sisyphus table, as held by the drawing context.
+     *
+     * @return The current absolute position of the ball on the Sisyphus table.
+     */
+    public Position getCurrentPosition() {
+        return currentPosition;
+    }
+
+
+    public double getEraseSpacing() {
+        return eraseSpacing;
+    }
+
+
+    public void setEraseSpacing( final double _eraseSpacing ) {
+        eraseSpacing = _eraseSpacing;
     }
 }

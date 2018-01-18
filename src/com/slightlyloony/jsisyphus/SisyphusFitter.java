@@ -138,8 +138,8 @@ public class SisyphusFitter {
         Position end = points.get( _end );
         double ldt = end.getTheta() - start.getTheta();  // delta theta over the entire line (may be multiple revolutions)...
         double ldr = end.getRho() - start.getRho();      // delta rho over the entire line...
-        boolean isRadial = (ldt == 0);
-        boolean isCircle = (ldr == 0);
+        boolean isRadial = (Math.abs( ldt ) < 1.0E-12 );
+        boolean isCircle = (Math.abs( ldr ) < 1.0E-12 );
         boolean isClockwise = (ldt > 0);
         double m = ldr / ldt;
         double b = start.getRho() - m * start.getTheta();

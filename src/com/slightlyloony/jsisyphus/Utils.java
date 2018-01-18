@@ -58,7 +58,7 @@ public class Utils {
      * @return the number of turns in the given angle.
      */
     public static int getTurnsFromTheta( final double _theta ) {
-        int turns = (1 + (int) Math.floor( _theta / Math.PI )) >> 1;
+        int turns = (1 + (int) Math.floor( Math.abs( _theta ) / Math.PI )) >> 1;
         return (_theta < 0) ? -turns : turns;
     }
 
@@ -81,6 +81,14 @@ public class Utils {
         // get coefficients for the line...
         double dy = _end.getY() - _start.getY();
         double dx = _end.getX() - _start.getX();
+
+        // if dx == 0 (vertical line), we have a special case...
+        if( dx == 0 ) return Math.abs( _point.getX() - _start.getX() );
+
+        // if dy == 0 (horizontal line, we have a special case...
+        if( dy == 0 ) return Math.abs( _point.getY() - _start.getY() );
+
+        // otherwise, we carry on...
         double ml = dy / dx;
         double bl = _start.getY() - ml * _start.getX();
 
