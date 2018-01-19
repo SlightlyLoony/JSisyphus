@@ -240,17 +240,35 @@ public class DrawingContext {
         SisyphusFitter fitter = new SisyphusFitter( line.getPoints(), this );
         fitter.generate();
         vertices.addAll( fitter.getVertices() );
-        currentPosition = line.getEnd();
+        currentPosition = transformer.untransform( line.getEnd() );
     }
 
 
+    /**
+     * Rotate the canvas about the current center to the given angle in radians.
+     *
+     * @param _theta the angle to rotate the canvas to, in radians.
+     */
     public void rotateTo( final double _theta ) {
+
+        // calculate the delta theta and handle it through that method...
+        rotateBy( _theta - transformer.getRotation() );
         transformer.setRotation( _theta );
     }
 
 
+    /**
+     * Rotate the canvas by the given angle in radians from its current rotation.  Positive angles rotate the canvas clockwise, negative angles anticlockwise.
+     *
+     * @param _deltaTheta the angle to rotate the canvas by.
+     */
     public void rotateBy( final double _deltaTheta ) {
+
+        // first rotate the canvas...
         transformer.setRotation( transformer.getRotation() + _deltaTheta );
+
+        // then adjust the current position...
+        currentPosition = new PolarPosition( currentPosition.getRho(), currentPosition.getTheta() - _deltaTheta );
     }
 
 

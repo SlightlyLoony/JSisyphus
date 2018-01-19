@@ -251,9 +251,9 @@ public class SisyphusFitter {
                     double ha = x0 * Math.tan( aper );
 
                     // if fit tolerance < adjusted height, then we know we do NOT have a fit...
-                    if( fitTolerance < h + (isConvex ? ha : -ha) ) {
-                        return logFail( p, i );
-                    }
+//                    if( fitTolerance < h + (isConvex ? ha : -ha) ) {
+//                        return logFail( p, i );
+//                    }
                 }
 
                 // generate sub-segments, checking for fit as we go...
@@ -311,7 +311,6 @@ public class SisyphusFitter {
         sb.append( ") is not on the spiral.  It took ");
         sb.append( _iteration );
         sb.append( " iterations to determine this." );
-
         System.out.println( sb.toString() );
         return false;
     }
