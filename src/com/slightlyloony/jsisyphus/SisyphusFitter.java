@@ -7,20 +7,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Instances of this class find the series of spiral lines drawn natively by the Sisyphus table that will fit within the fit tolerance of the arbitrary line
+ * Instances of this class find the series of spiral lines drawn natively by the Sisyphus table that will fit within the fit tolerance of an arbitrary line
  * represented by a series of points.  The result is a list of vertices.
  *
  * @author Tom Dilatush  tom@dilatush.com
  */
 public class SisyphusFitter {
 
-//    private final Position start;
-//    private final Position end;
-//    private final double m;
-//    private final double b;
-//    private final boolean isCircle;
-//    private final boolean isRadial;
-//    private final boolean isClockwise;
+    /**
+     * Table encoding the possible outcomes resulting from measuring the distance between a point being tested and the four vertices of three Sisyphus line
+     * segments.  The index to this table is a three bit number where each bit is a 1 for closer, 0 for further, and bit 2 is for vertice 1 vs vertice 0,
+     * bit 1 is for vertice 2 vs vertice 1, and bit 0 is for vertice 3 vs vertice 2.  For example, a 6 means vertice 1 is closer to the test point then
+     * vertice 0, vertice 2 is closer than vertice 1, and vertice 3 is further than vertice 2.  From that we can deduce (and the table encodes) that the
+     * closest point on the Sisyphus line to the test point must lie somewhere between vertice 1 and vertice 3.  The error field allows detection of
+     * impossible results.
+     */
+    private static final SegResult SEG_RESULTS[] = {        // index  1->0    2->1    3->2
+            new SegResult( 0, 1, false ), // 0      further further further
+            new SegResult( 0, 0, true  ), // 1      further further closer
+            new SegResult( 0, 0, true  ), // 2      further closer  further
+            new SegResult( 0, 0, true  ), // 3      further closer  closer
+            new SegResult( 0, 2, false ), // 4      closer  further further
+            new SegResult( 0, 0, true  ), // 5      closer  further closer
+            new SegResult( 1, 3, false ), // 6      closer  closer  further
+            new SegResult( 2, 3, false ), // 7      closer  closer  closer
+    };
+
     private final List<Position> points;
     private final DrawingContext dc;
     private final List<Position> vertices;
@@ -37,26 +49,13 @@ public class SisyphusFitter {
 
         points = _points;
         dc = _dc;
-//        start = points.get( 0 );
-//        end = points.get( points.size() - 1);
-
-        // calculate our line's coefficients...
-//        double dt = end.getTheta() - start.getTheta();  // delta theta over the entire line (may be multiple revolutions)...
-//        double dr = end.getRho() - start.getRho();      // delta rho over the entire line...
-//        isRadial = (dt == 0);
-//        isCircle = (dr == 0);
-//        isClockwise = (dt > 0);
-//        m = dr / dt;
-//        b = start.getRho() - m * start.getTheta();
-
         vertices = new ArrayList<>();
         fitTolerance = dc.getFitToleranceRho();
     }
 
 
     /**
-     * Returns a list of positions, each of which represents a vertice of a line to draw on the Sisyphus table.
-     * @return
+     * Creates a list of positions representing vertices of a line to draw on the Sisyphus table.  For n lines there are n+1 vertices.
      */
     public void generate() {
         int last = points.size() - 1;
@@ -92,38 +91,6 @@ public class SisyphusFitter {
         }
 
     }
-
-
-    private static class Vertice {
-        public double rho;
-        public double theta;
-        public double x;
-        public double y;
-        public double distance;
-    }
-
-    private static class SegResult {
-        public int start;
-        public int end;
-        public boolean error;
-
-        public SegResult( final int _start, final int _end, final boolean _error ) {
-            start = _start;
-            end = _end;
-            error = _error;
-        }
-    }
-
-    private static final SegResult SEG_RESULTS[] = {
-            new SegResult( 0, 1, false ),
-            new SegResult( 0, 0, true  ),
-            new SegResult( 0, 0, true  ),
-            new SegResult( 0, 0, true  ),
-            new SegResult( 0, 2, false ),
-            new SegResult( 0, 0, true  ),
-            new SegResult( 1, 3, false ),
-            new SegResult( 2, 3, false ),
-    };
     private static final int MAX_ITERATIONS = 25;
     /**
      * Returns true if the line defined by the start and end indices into the points held by this instance fits (within fit tolerance) the path that the
@@ -144,8 +111,11 @@ public class SisyphusFitter {
         double m = ldr / ldt;
         double b = start.getRho() - m * start.getTheta();
 
+        // where we keep our segment and sub-segment details...
+        SegmentVertice st[] = {new SegmentVertice(), new SegmentVertice(), new SegmentVertice(), new SegmentVertice()};
+
         // iterate over all the points in this line, testing them in order from start to end...
-        Vertice lastFit = new Vertice();
+        SegmentVertice lastFit = new SegmentVertice();
         lastFit.rho = points.get( _start ).getRho();
         lastFit.theta = points.get( _start ).getTheta();
         calcXY( lastFit );
@@ -181,13 +151,23 @@ public class SisyphusFitter {
                 else
                     return logFail( p, 0 );
 
-            /*
-                If we get here, then we have the more difficult case - we have to see if there's a point on the spiral that is within the fit tolerance to our
-                point.  The smaller the starting segment size, the fewer iterations will be required.  We use the last fit location as our start of segment,
-                and calculate a point roughly two times the point spacing for the end.
-             */
-            double ss = lastFit.theta;
-            double se = getSegmentEnd( m, b, p, lastFit );
+            if( !fitsCurve( m, b, st, lastFit, p, testPoint ) )
+                return false;
+        }
+
+        // if we get here, then we've successfully tested every point...
+        return true;
+    }
+
+
+    private boolean fitsCurve( final double _m, final double _b, final SegmentVertice[] _st, final SegmentVertice _lastFit, final int _p, final Position _testPoint ) {
+    /*
+        If we get here, then we have the more difficult case - we have to see if there's a point on the spiral that is within the fit tolerance to our
+        point.  The smaller the starting segment size, the fewer iterations will be required.  We use the last fit location as our start of segment,
+        and calculate a point roughly two times the point spacing for the end.
+     */
+        double ss = _lastFit.theta;
+        double se = getSegmentEnd( _m, _b, _p, _lastFit );
 
             /*
                 Now we use successive segmentation of our line to narrow down the size of the segment that approaches the closest to our point.  If at any time
@@ -202,97 +182,97 @@ public class SisyphusFitter {
                 look up the result rather than computing it each time.
              */
 
-            // where we keep our segment and sub-segment details...
-            Vertice st[] = {new Vertice(), new Vertice(), new Vertice(), new Vertice()};
+        // initialize the starting segment's end points...
+        _st[0].theta = ss;
+        _st[0].rho = getRhoFromTheta( _m, _b, ss );
+        _st[3].theta = se;
+        _st[3].rho = getRhoFromTheta( _m, _b, se );
 
-            // initialize the starting segment's end points...
-            st[0].theta = ss;
-            st[0].rho = getRhoFromTheta( m, b, ss );
-            st[3].theta = se;
-            st[3].rho = getRhoFromTheta( m, b, se );
+        for( int i = 0; i < MAX_ITERATIONS; i++ ) {
 
-            for( int i = 0; i < MAX_ITERATIONS; i++ ) {
+            // calculate our end points, checking for fit...
+            if( calcVertice( _st[3], _testPoint, _lastFit ) ) return true;  // doing this one first helps at the origin of the spiral...
+            if( calcVertice( _st[0], _testPoint, _lastFit ) ) return true;
 
-                // make sure we didn't iterate too much!
-                if( i == MAX_ITERATIONS - 1 )
-                    throw new IllegalStateException( "Too many iterations!" );
+            if( doesNotFit( _m, _b, _st, _testPoint, i ) ) return logFail( _p, i );
 
-                // calculate our end points, checking for fit...
-                if( calcVertice( st[3], testPoint, lastFit ) ) break;  // doing this one first helps at the origin of the spiral...
-                if( calcVertice( st[0], testPoint, lastFit ) ) break;
+            // if we've iterated too much, then bail out, failing the fit...
+            if( i == MAX_ITERATIONS - 1 )
+                return logFail( _p, i );
 
-                /*
-                    Here we check to see if we can be certain that we DON'T have a fit, if the aperture (the difference in the angles from our test point to the
-                    two ends of our segment) is less than a certain amount.  We do this by calculating the distance between our test point and an imaginary line
-                    between the ends of this segment, plus or minus an adjustment for the convexity or concavity of our spiral.  If this distance is greater than
-                    the fit tolerance, than we know the point is not on the spiral.
-                 */
+            // generate sub-segments, checking for fit as we go...
+            double dt = (_st[3].theta - _st[0].theta) / 3;
+            _st[1].theta = _st[0].theta + dt;
+            _st[1].rho = getRhoFromTheta( _m, _b, _st[1].theta );
+            _st[2].theta = _st[1].theta + dt;
+            _st[2].rho = getRhoFromTheta( _m, _b, _st[2].theta );
 
-                // calculate the aperture; if it's under 10 degrees then we'll check for proof that we can't fit...
-                double tp2s = Utils.getTheta( st[0].x - testPoint.getX(), st[0].y - testPoint.getY() );
-                double tp2e = Utils.getTheta( st[3].x - testPoint.getX(), st[3].y - testPoint.getY() );
-                double tpdt = Utils.deltaTheta( tp2s, tp2e );
-                double aper = Math.abs( tpdt );
-                if( aper < Math.toRadians( 10 ) ) {
+            // calculate our vertice points, checking for fit as we go...
+            if( calcVertice( _st[1], _testPoint, _lastFit ) ) return true;
+            if( calcVertice( _st[2], _testPoint, _lastFit ) ) return true;
 
-                    // see if the spiral curve, relative to our test point, is convex or concave...
-                    boolean positiveDeltaSlope = (getRadialSlope( m, b, st[0].theta ) < getRadialSlope( m, b, st[3].theta ));
-                    boolean positiveDeltaTheta = (tpdt >= 0);
-                    boolean isConvex = (positiveDeltaSlope != positiveDeltaTheta);
+            // calculate our delta distance pattern...
+            int ddp = 0;
+            if( _st[1].distance <= _st[0].distance ) ddp |= 4;
+            if( _st[2].distance <= _st[1].distance ) ddp |= 2;
+            if( _st[3].distance <= _st[2].distance ) ddp |= 1;
 
-                    // calculate the distance between our segment ends...
-                    double dv = Math.hypot( st[3].x - st[0].x, st[3].y - st[0].y );
-
-                    // calculate the height of the triangle (to the test point) formed by our segment ends and the test point...
-                    double x0 = (st[3].distance * st[3].distance - st[0].distance * st[0].distance - dv * dv) / (-2 * dv);
-                    double h = Math.sqrt( st[0].distance * st[0].distance - x0 * x0 );
-
-                    // adjust for convexity or concavity...
-                    double ha = x0 * Math.tan( aper );
-
-                    // if fit tolerance < adjusted height, then we know we do NOT have a fit...
-//                    if( fitTolerance < h + (isConvex ? ha : -ha) ) {
-//                        return logFail( p, i );
-//                    }
-                }
-
-                // generate sub-segments, checking for fit as we go...
-                double dt = (st[3].theta - st[0].theta) / 3;
-                st[1].theta = st[0].theta + dt;
-                st[1].rho = getRhoFromTheta( m, b, st[1].theta );
-                st[2].theta = st[1].theta + dt;
-                st[2].rho = getRhoFromTheta( m, b, st[2].theta );
-
-                // calculate our vertice points, checking for fit as we go...
-                if( calcVertice( st[1], testPoint, lastFit ) ) break;
-                if( calcVertice( st[2], testPoint, lastFit ) ) break;
-
-                // calculate our delta distance pattern...
-                int ddp = 0;
-                if( st[1].distance <= st[0].distance ) ddp |= 4;
-                if( st[2].distance <= st[1].distance ) ddp |= 2;
-                if( st[3].distance <= st[2].distance ) ddp |= 1;
-
-                // look up our new sub-segment...
-                SegResult sr = SEG_RESULTS[ddp];
-                if( sr.error )
-                    throw new IllegalStateException( "Impossible segment distance result: " + ddp );
-                st[0].theta = st[sr.start].theta;
-                st[0].rho = st[sr.start].rho;
-                st[3].theta = st[sr.end].theta;
-                st[3].rho = st[sr.end].rho;
+            // look up our new sub-segment...
+            SegResult sr = SEG_RESULTS[ddp];
+            if( sr.error ) {
+                logState( "Impossible segment analysis result: " + ddp, _testPoint, _st );
+                return logFail( _p, MAX_ITERATIONS );
             }
-
-            // we get here if the point fit within our specified number of iterations (thorugh a "break")...
+            _st[0].theta = _st[sr.start].theta;
+            _st[0].rho = _st[sr.start].rho;
+            _st[3].theta = _st[sr.end].theta;
+            _st[3].rho = _st[sr.end].rho;
         }
 
-        // if we get here, then we've successfully tested every point...
-        return true;
+        // we've iterated too much...
+        logState( "Too many iterations!", _testPoint, _st );
+        return logFail( _p, MAX_ITERATIONS );
+    }
+
+
+    /**
+        Returns true if we can be certain that we DON'T have a fit, if the aperture (the difference in the angles from our test point to the
+        two ends of our segment) is less than a certain amount.  We do this by calculating the distance between our test point and an imaginary line
+        between the ends of this segment, plus or minus an adjustment for the convexity or concavity of our spiral.  If this distance is greater than
+        the fit tolerance, than we know the point is not on the spiral.
+     */
+    private boolean doesNotFit( final double _m, final double _b, final SegmentVertice[] _st, final Position _testPoint, final int _i ) {
+        // calculate the aperture; if it's under 10 degrees then we'll check for proof that we can't fit...
+        double tp2s = Utils.getTheta( _st[0].x - _testPoint.getX(), _st[0].y - _testPoint.getY() );
+        double tp2e = Utils.getTheta( _st[3].x - _testPoint.getX(), _st[3].y - _testPoint.getY() );
+        double tpdt = Utils.deltaTheta( tp2s, tp2e );
+        double aper = Math.abs( tpdt );
+        if( aper < Math.toRadians( 10 ) ) {
+
+            // see if the spiral curve, relative to our test point, is convex or concave...
+            boolean positiveDeltaSlope = (getRadialSlope( _m, _b, _st[0].theta ) < getRadialSlope( _m, _b, _st[3].theta ));
+            boolean positiveDeltaTheta = (tpdt >= 0);
+            boolean isConvex = (positiveDeltaSlope != positiveDeltaTheta);
+
+            // calculate the distance between our segment ends...
+            double dv = Math.hypot( _st[3].x - _st[0].x, _st[3].y - _st[0].y );
+
+            // calculate the height of the triangle (to the test point) formed by our segment ends and the test point...
+            double x0 = (_st[3].distance * _st[3].distance - _st[0].distance * _st[0].distance - dv * dv) / (-2 * dv);
+            double h = Math.sqrt( _st[0].distance * _st[0].distance - x0 * x0 );
+
+            // adjust for convexity or concavity...
+            double ha = x0 * Math.tan( aper );
+
+            // if fit tolerance < adjusted height, then we know we do NOT have a fit...
+            return fitTolerance < h + (isConvex ? ha : -ha);
+        }
+        return false;
     }
 
 
     // returns theta of the segment end...
-    private double getSegmentEnd( final double _m, final double _b, final int _current, final Vertice _lastFit ) {
+    private double getSegmentEnd( final double _m, final double _b, final int _current, final SegmentVertice _lastFit ) {
         Position current = points.get( _current );
         double dt = current.getTheta() - _lastFit.theta;
         return _lastFit.theta + dt * 2;
@@ -316,9 +296,27 @@ public class SisyphusFitter {
     }
 
 
+    private void logState( final String _msg, final Position _tp, final SegmentVertice _st[] ) {
+        StringBuilder sb = new StringBuilder();
+        sb.append( _msg );
+        sb.append( '\n' );
+        sb.append( "Test point: " );
+        sb.append( _tp.toString() );
+        sb.append( '\n' );
+        for( int i = 0; i < 4; i++ ) {
+            sb.append( "Segment vertice " );
+            sb.append( i );
+            sb.append( ": " );
+            sb.append( _st[i].toString() );
+            sb.append( '\n' );
+        }
+        System.out.print( sb.toString() );
+    }
+
+
     // Computes x, y, and distance for the given vertice, putting the results in the given segment table array.  Returns true if this point is within
     // the fit tolerance, false otherwise.
-    private boolean calcVertice( final Vertice _vertice, final Position _testPoint, final Vertice _lastFit ) {
+    private boolean calcVertice( final SegmentVertice _vertice, final Position _testPoint, final SegmentVertice _lastFit ) {
         calcXY( _vertice );
         _vertice.distance = Math.hypot( _vertice.x - _testPoint.getX(), _vertice.y - _testPoint.getY() );
         boolean fits = _vertice.distance <= fitTolerance;
@@ -330,7 +328,7 @@ public class SisyphusFitter {
     }
 
 
-    private void calcXY( final Vertice _vertice ) {
+    private void calcXY( final SegmentVertice _vertice ) {
         _vertice.x = Math.sin(_vertice.theta) * _vertice.rho;
         _vertice.y = Math.cos(_vertice.theta) * _vertice.rho;
     }
@@ -384,5 +382,42 @@ public class SisyphusFitter {
 
     public List<Position> getVertices() {
         return vertices;
+    }
+
+
+    /**
+     * Represents a vertice of a Sisyphus line segement.
+     */
+    private static class SegmentVertice {
+        private double rho;
+        private double theta;
+        private double x;
+        private double y;
+        private double distance;  // distance to the test point...
+
+
+        @Override
+        public String toString() {
+            return "rho: " + rho + ", theta: " + theta + ", x: " + x + ", y: " + y + ", distance: " + distance;
+        }
+    }
+
+
+    private static class SegResult {
+        private int start;
+        private int end;
+        private boolean error;
+
+
+        private SegResult( final int _start, final int _end, final boolean _error ) {
+            start = _start;
+            end = _end;
+            error = _error;
+        }
+
+        @Override
+        public String toString() {
+            return "start: " + start + ", end: " + end + ", error: " + error;
+        }
     }
 }

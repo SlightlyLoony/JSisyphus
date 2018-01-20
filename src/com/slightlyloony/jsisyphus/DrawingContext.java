@@ -1,6 +1,7 @@
 package com.slightlyloony.jsisyphus;
 
 import com.slightlyloony.jsisyphus.lines.ArithmeticSpiral;
+import com.slightlyloony.jsisyphus.lines.CircularArc;
 import com.slightlyloony.jsisyphus.lines.Line;
 import com.slightlyloony.jsisyphus.lines.StraightLine;
 import com.slightlyloony.jsisyphus.models.Model;
@@ -182,6 +183,43 @@ public class DrawingContext {
      */
     public void spiralToRT( final double dRho, final double dTheta ) {
         spiralTo( new PolarPosition( currentPosition.getRho() + dRho, currentPosition.getTheta() + dTheta ) );
+    }
+
+
+    /**
+     * Draws a circular arc with the given arc angle from the current position to the given absolute line end position.
+     *
+     * @param _absoluteEnd the relative position for the end of the new line.
+     * @param _arcAngle the angular fraction of the arc to draw.
+     */
+    public void arcTo( final Position _absoluteEnd, final double _arcAngle ) {
+        Line line = new CircularArc( this, currentPosition, _absoluteEnd, _arcAngle );
+        draw( line );
+    }
+
+
+    /**
+     * Draws a circular arc with the given arc angle from the current position to the point at the given delta x, delta y, and delta turns from the current position.
+     *
+     * @param dX the difference in x between the ending position and the current position.
+     * @param dY the difference in y between the ending position and the current position.
+     * @param dTurns the difference in turns between the ending position and the current position.
+     * @param _arcAngle the angular fraction of the arc to draw.
+     */
+    public void arcToXYT( final double dX, final double dY, final int dTurns, final double _arcAngle ) {
+        arcTo( new CartesianPosition( currentPosition.getX() + dX, currentPosition.getY() + dY, currentPosition.getTurns() + dTurns ), _arcAngle );
+    }
+
+
+    /**
+     * Draws a circular arc with the given arc angle from the current position to the point at the given delta rho and delta theta from the current position.
+     *
+     * @param dRho the difference in rho between the ending position and the current position.
+     * @param dTheta the difference in theta between the ending position and the current position.
+     * @param _arcAngle the angular fraction of the arc to draw.
+     */
+    public void arcToRT( final double dRho, final double dTheta, final double _arcAngle ) {
+        arcTo( new PolarPosition( currentPosition.getRho() + dRho, currentPosition.getTheta() + dTheta ), _arcAngle );
     }
 
 

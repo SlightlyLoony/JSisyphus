@@ -11,5 +11,6 @@ public class Main {
 
         new SimpleRadiance( "SimpleRadiance" ).trace();
         new AngularRadiance( "AngularRadiance" ).trace();
+        new Petalar( "Petalar" ).trace();
     }
 }

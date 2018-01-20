@@ -61,7 +61,7 @@ public class APosition implements Position {
 
     @Override
     public double deltaY( final Position _from ) {
-        return x - _from.getY();
+        return y - _from.getY();
     }
 
 

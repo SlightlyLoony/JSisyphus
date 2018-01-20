@@ -1,7 +1,6 @@
 package com.slightlyloony.jsisyphus.examples;
 
 import com.slightlyloony.jsisyphus.ATrack;
-import com.slightlyloony.jsisyphus.lines.CircularArc;
 import com.slightlyloony.jsisyphus.lines.Line;
 import com.slightlyloony.jsisyphus.lines.StraightLine;
 import com.slightlyloony.jsisyphus.positions.CartesianPosition;
@@ -40,8 +39,8 @@ public class NestedBubbles extends ATrack {
         dc.draw( rl );
 
         // trace the inner circle...
-        Line ic = new CircularArc( dc, _center, innerRadius, 0, Math.PI * 2 );
-        dc.draw( ic );
+//        Line ic = new CircularArc( dc, _center, innerRadius, 0, Math.PI * 2 );
+//        dc.draw( ic );
 
         // trace the ring of six inner circles...
         double ar = 0;  // angle of radial...

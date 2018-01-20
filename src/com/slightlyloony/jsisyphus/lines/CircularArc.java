@@ -1,6 +1,7 @@
 package com.slightlyloony.jsisyphus.lines;
 
 import com.slightlyloony.jsisyphus.DrawingContext;
+import com.slightlyloony.jsisyphus.Utils;
 import com.slightlyloony.jsisyphus.positions.CartesianPosition;
 import com.slightlyloony.jsisyphus.positions.Position;
 
@@ -13,29 +14,44 @@ public class CircularArc extends ALine implements Line {
 
     private final Position center;
     private final double radius;
-    private final double terminalValue;
     private final double deltaAngle;
 
-    /**
-     * Represents all or part of a circle on the Sisyphus table.  The circle is defined by the position of its center and its radius (specified in Sisyphus
-     * table distance units).  The length of the arc drawn is defined by the starting and ending angles, in radians.  Note that this means circles may be
-     * traced partially, completely, or even repeatedly.
-     *
-     * @param _center  the position of the center of the circle to be drawn.
-     * @param _radius the radius of the circle to be drawn, in Sisyphus table distance units.
-     * @param _startAngle  the angle (from the center) of the start of the circle to be drawn.
-     * @param _endAngle  the angle (from the center) of the end of the circle to be drawn.
-     */
-    public CircularArc( final DrawingContext _dc, final Position _center, final double _radius, final double _startAngle, final double _endAngle ) {
-        super( _dc, calcStart( _center, _radius, _startAngle ), calcEnd( _center, _radius, _endAngle ) );
+    private int segments;
+    private int currentSegment;
+    private double currentAngle;
 
-        // some setup...
-        center = _center;
-        radius = _radius;
-        double arclen = _radius * (_endAngle - _startAngle);
-        int segs = (int) Math.ceil( Math.abs( arclen ) / dc.getMaxPointDistance() );
-        deltaAngle = (_endAngle - _startAngle) / segs;
-        terminalValue = _endAngle - 0.1 * deltaAngle;
+    /**
+     * Represents all or part of a circle on the Sisyphus table.  The arc is defined by the given start and end point, and the given angle of arc subtended.
+     * Positive arc angles define clockwise arcs, negative arc angles anticlockwise.
+     *
+     * @param _dc the drawing context this line will be drawn on.
+     * @param _start the start point for this line.
+     * @param _end the end point for this line.
+     * @param _arcAngle the circular angle of the arc to be drawn.
+     */
+    public CircularArc( final DrawingContext _dc, final Position _start, final Position _end, final double _arcAngle ) {
+        super( _dc, _start, _end );
+
+        // calculate our key elements...
+        boolean isClockwise = (_arcAngle >= 0);
+        boolean isLarge = (((int) Math.floor( Math.abs( _arcAngle ) / Math.PI )) & 1) == 1;
+        boolean invert = isClockwise == isLarge;
+        double naTheta = Math.abs( Utils.normalizeTheta( _arcAngle ) );
+        double iTheta = (Math.PI - Math.abs( naTheta )) / 2;
+        double dTheta = Utils.getTheta( end.deltaX( start ), end.deltaY( start ) );
+        double d = start.distanceFrom( _end );
+        radius = (d / 2) / Math.cos( iTheta );
+        double xc = start.getX() + radius * Math.sin( dTheta + (invert ? -iTheta : iTheta) );
+        double yc = start.getY() + radius * Math.cos( dTheta + (invert ? -iTheta : iTheta) );
+        center = new CartesianPosition( xc, yc, start.getTurns() );
+
+        double arclen = radius * Math.abs( _arcAngle ) / Math.PI;
+        segments = (int) Math.ceil( arclen / dc.getMaxPointDistance() );
+        deltaAngle = _arcAngle / segments;
+        currentSegment = 0;
+        currentAngle = Utils.getTheta( start.deltaX( center ), start.deltaY( center ) );
+
+        generate();
     }
 
 
@@ -48,24 +64,11 @@ public class CircularArc extends ALine implements Line {
      */
     @Override
     protected Position nextPoint( final Position _current ) {
-        double na = _current.getTheta() + deltaAngle;
-        if( isTerminal( deltaAngle, na, terminalValue ) ) return end;
-        double nx = center.getX() + radius * Math.sin( na );
-        double ny = center.getY() + radius * Math.cos( na );
-        return new CartesianPosition( nx, ny, _current.getTurns() );
-    }
-
-
-    private static Position calcStart( final Position _center, final double _radius, final double _startAngle ) {
-        double x = _center.getX() + _radius * Math.sin( _startAngle );
-        double y = _center.getY() + _radius * Math.cos( _startAngle );
-        return new CartesianPosition( x, y, _center.getTurns() );
-    }
-
-
-    private static Position calcEnd( final Position _center, final double _radius, final double _endAngle ) {
-        double x = _center.getX() + _radius * Math.sin( _endAngle );
-        double y = _center.getY() + _radius * Math.cos( _endAngle );
-        return new CartesianPosition( x, y, _center.getTurns() );
+        currentSegment++;
+        if( currentSegment == segments ) return end;
+        currentAngle += deltaAngle;
+        double nx = center.getX() + radius * Math.sin( currentAngle );
+        double ny = center.getY() + radius * Math.cos( currentAngle );
+        return new CartesianPosition( nx, ny, center.getTurns() );
     }
 }
