@@ -44,6 +44,7 @@ public class DrawingContext {
     private double eraseSpacing;  // the erase spiral radial spacing in meters...
     private final Transformer transformer;
     private final Deque<TransformState> transformStack;
+    private boolean mute = false;
 
 
     /**
@@ -376,9 +377,13 @@ public class DrawingContext {
 
 
     public void draw( final Line _line ) {
-        SisyphusFitter fitter = new SisyphusFitter( _line.getPoints(), this );
-        fitter.generateVertices();
-        vertices.addAll( fitter.getVertices() );
+        if( _line.getStart().distanceFrom( currentPosition ) > 0.001 )
+            hashCode();
+        if( !mute ) {
+            SisyphusFitter fitter = new SisyphusFitter( _line.getPoints(), this );
+            fitter.generateVertices();
+            vertices.addAll( fitter.getVertices() );
+        }
         currentPosition = _line.getEnd();
     }
 
@@ -529,5 +534,15 @@ public class DrawingContext {
     private static class TransformState {
         private double rotation;
         private Position translation;
+    }
+
+
+    public boolean isMute() {
+        return mute;
+    }
+
+
+    public void setMute( final boolean _mute ) {
+        mute = _mute;
     }
 }

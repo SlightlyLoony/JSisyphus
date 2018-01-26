@@ -71,6 +71,7 @@ public class Transformer {
 
         // rotate...
         if( rotation != 0 ) {
+            pos = new CartesianPosition( pos.getX(), pos.getY(), 0 );   // TODO: this fixed a bad bug - but why???
             pos = new PolarPosition( pos.getRho(), pos.getTheta() - rotation );
         }
 
