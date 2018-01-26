@@ -31,4 +31,16 @@ public interface Position {
     double deltaY( final Position _from );
     double angleFrom( final Position _from );
     double distanceFrom( final Position _from );
+
+    /**
+     * Returns a new instance implementing this interface that is located at the given dX, dY from this instance.  This method assumes that the new instance
+     * is relative to the current instance, with polar angles and Cartesian turns set properly.  For instance, if this instance was at theta 175 degrees,
+     * and the new instance is 15 degrees clockwise from it, the new instance will have a theta of 190 degrees (not -170 degrees), and a turn count that
+     * is one greater than that of this instance.
+     *
+     * @param _dX the delta x to add to this instance's position.
+     * @param _dY the delta y to add to this instance's position.
+     * @return the new instance.
+     */
+    Position fromDeltaXY( final double _dX, final double _dY );
 }

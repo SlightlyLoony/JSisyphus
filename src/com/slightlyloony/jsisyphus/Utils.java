@@ -11,15 +11,31 @@ public class Utils {
 
 
     /**
-     * Returns the difference (b - a) between the two given angles ([-pi..pi]) as a result ([-pi/2..pi/2]).
+     * Returns the difference (b - a) between the two given angles ([-pi..pi]) as a result ([-pi..pi]).
      * @param _a the first angle.
      * @param _b the second angle.
      * @return the difference between the two angles.
      */
     public static double deltaTheta( final double _a, final double _b ) {
         double dif = _b - _a;
-        return (dif < -Math.PI/2 ) ? dif + Math.PI*2 : ((dif > Math.PI/2) ? dif - Math.PI*2 : dif);
+        return (dif < -Math.PI ) ? dif + Math.PI * 2 : ((dif > Math.PI) ? dif - Math.PI * 2 : dif);
     }
+//
+//
+//    /**
+//     * Adds the given angles together, producing a result that preserves the sign of the first operand, <i>unless</i> the result crosses zero.  For instance,
+//     * adding 175 degrees and 20 degrees will result in 195 degrees, <i>not</i> a normalized -165 degrees.  On the other hand, adding -10 degrees and 15
+//     * degrees will give the expected result of 5 degrees.
+//     *
+//     * @param _a the first operand, and the one that controls the sign of the result.
+//     * @param _b the second operand.
+//     * @return the sum of the two given angles.
+//     */
+//    public static double safeAngleAdd( final double _a, final double _b ) {
+//        double result = _a + _b;
+//        if( (_a >= 0) && (result < 0) )
+//
+//    }
 
 
     /**
@@ -110,5 +126,33 @@ public class Utils {
 
         // calculate the distance...
         return Math.hypot( _point.getX() - xi, _point.getY() - yi );
+    }
+
+
+    /**
+     * Returns a "pretty string" (such as "15th", "22nd", etc.) for the given integer (such as 15, 22, etc.).
+     *
+     * @param _number the number to get a pretty string for.
+     * @return the pretty string.
+     */
+    public static String prettyIteration( final int _number ) {
+
+        int lastDigit = _number % 10;
+        switch( lastDigit ) {
+            case 1: return _number + "st";
+            case 2: return _number + "nd";
+            case 3: return _number + "rd";
+            default: return _number + "th";
+        }
+    }
+
+
+    /**
+     * Logs the given string to the system console.  This method may be modified for a different logging destination.
+     *
+     * @param _msg the message to log.
+     */
+    public static void log( final String _msg ) {
+        System.out.println( _msg );
     }
 }

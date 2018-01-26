@@ -1,13 +1,8 @@
 package com.slightlyloony.jsisyphus;
 
-import com.slightlyloony.jsisyphus.lines.ArbitraryLine;
-import com.slightlyloony.jsisyphus.lines.Line;
 import com.slightlyloony.jsisyphus.positions.CartesianPosition;
 import com.slightlyloony.jsisyphus.positions.PolarPosition;
 import com.slightlyloony.jsisyphus.positions.Position;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Instances of this class transform lines through any combination of translation or rotation.  The order of transformation operations is
@@ -27,7 +22,6 @@ public class Transformer {
 
     private Position translation = Position.CENTER;
     private double rotation = 0;
-    private boolean autoTranslate = false;
     private boolean noop = true;
 
 
@@ -35,67 +29,55 @@ public class Transformer {
     }
 
 
-    public Line transform( final DrawingContext _dc, final Line _line ) {
-
-        // if we have no transformations, return with our argument unchanged...
-        if( noop ) return _line;
-
-        // iterate over all the points in our argument (could be in either direction)...
-        int sp = _line.getPoints().size() - 1;
-        List<Position> points = new ArrayList<>( _line.getPoints().size() );  // the place for our result...
-        for( int p = 0; p <= sp; p++ ) {
-
-            // transform the point...
-            Position pos = transform( _line.getPoints().get( p ) );
-
-            // stuff the result...
-            points.add( pos );
-        }
-
-        if( autoTranslate )
-            translation = points.get( points.size() - 1 );
-
-        return new ArbitraryLine( _dc, points );
-    }
-
-
-    public Position transform( Position _pos ) {
+    public Position transform( final Position _pos ) {
 
         if( noop ) return _pos;
 
+        Position pos = _pos;
+
         // rotate...
         if( rotation != 0 ) {
-            _pos = new PolarPosition( _pos.getRho(), _pos.getTheta() + rotation );
+            pos = new PolarPosition( _pos.getRho(), _pos.getTheta() + rotation );
         }
 
         // translate...
         if( !translation.isCenter() ) {
-            _pos = new CartesianPosition(
-                    _pos.getX() + translation.getX(),
-                    _pos.getY() + translation.getY(),
-                    _pos.getTurns() + translation.getTurns() );
+            pos = new CartesianPosition(
+                    pos.getX() + translation.getX(),
+                    pos.getY() + translation.getY(),
+                    0 );
         }
-        return _pos;
+
+        // make sure we have the right number of turns...
+        pos = new CartesianPosition( pos.getX(), pos.getY(), _pos.getTurns() );
+
+        return pos;
     }
 
 
-    public Position untransform( Position _pos ) {
+    public Position untransform( final Position _pos ) {
 
         if( noop ) return _pos;
 
-        // rotate...
-        if( rotation != 0 ) {
-            _pos = new PolarPosition( _pos.getRho(), _pos.getTheta() - rotation );
-        }
+        Position pos = _pos;
 
         // translate...
         if( !translation.isCenter() ) {
-            _pos = new CartesianPosition(
-                    _pos.getX() - translation.getX(),
-                    _pos.getY() - translation.getY(),
-                    _pos.getTurns() - translation.getTurns() );
+            pos = new CartesianPosition(
+                    pos.getX() - translation.getX(),
+                    pos.getY() - translation.getY(),
+                    _pos.getTurns() );
         }
-        return _pos;
+
+        // rotate...
+        if( rotation != 0 ) {
+            pos = new PolarPosition( pos.getRho(), pos.getTheta() - rotation );
+        }
+
+        // make sure we have the right number of turns...
+        pos = new CartesianPosition( pos.getX(), pos.getY(), _pos.getTurns() );
+
+        return pos;
     }
 
 
@@ -110,7 +92,8 @@ public class Transformer {
 
 
     public void setTranslation( final Position _translation ) {
-        translation = _translation;
+        // ensure that the translation is always on turn 0...
+        translation = new CartesianPosition( _translation.getX(), _translation.getY(), 0 );
         checkNoop();
     }
 
@@ -123,15 +106,5 @@ public class Transformer {
     public void setRotation( final double _rotation ) {
         rotation = _rotation;
         checkNoop();
-    }
-
-
-    public boolean isAutoTranslate() {
-        return autoTranslate;
-    }
-
-
-    public void setAutoTranslate( final boolean _autoTranslate ) {
-        autoTranslate = _autoTranslate;
     }
 }

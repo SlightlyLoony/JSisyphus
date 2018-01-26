@@ -6,6 +6,8 @@ import com.slightlyloony.jsisyphus.positions.Position;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.slightlyloony.jsisyphus.Utils.log;
+
 /**
  * Instances of this class find the series of spiral lines drawn natively by the Sisyphus table that will fit within the fit tolerance of an arbitrary line
  * represented by a series of points.  The result is a list of vertices.
@@ -13,6 +15,10 @@ import java.util.List;
  * @author Tom Dilatush  tom@dilatush.com
  */
 public class SisyphusFitter {
+
+    private static final int LOG_LEVEL = 3;  // [0..3], with higher numbers meaning more detailed logging...
+
+    private static final int MAX_ITERATIONS = 25;
 
     /**
      * Table encoding the possible outcomes resulting from measuring the distance between a point being tested and the four vertices of three Sisyphus line
@@ -57,21 +63,29 @@ public class SisyphusFitter {
     /**
      * Creates a list of positions representing vertices of a line to draw on the Sisyphus table.  For n lines there are n+1 vertices.
      */
-    public void generate() {
+    public void generateVertices() {
+
+        if( logLevel( 3 ) )
+            log( "Generating vertices for " + points.size() + " points from " + points.get( 0 ) + " to " + points.get( points.size() - 1) );
+
         int last = points.size() - 1;
         int current = 0;  // start at the beginning!
+        long startTime = System.currentTimeMillis();
         while( current < last ) {
 
             // get our start point...
             Position start = points.get( current );
 
             // do a binary search to find the longest segment we can draw as a Sisyphus line...
+            int iterations = 0;
             boolean done = false;
             int probe = last;
             int highestCan = current + 1;
             int lowestCant = last + 1;
             while( !done ) {
-                boolean canDraw = isOn( current, probe );
+                boolean canDraw = fits( current, probe );
+                iterations++;
+                if( logLevel( 3 ) ) log("  tested from " + current + " to " + probe + "; " + ( canDraw ? "fits" : "doesn't fit") );
                 if( canDraw ) {
                     highestCan = probe;
                     probe = probe + ((lowestCant - probe ) >> 1);
@@ -80,8 +94,16 @@ public class SisyphusFitter {
                     lowestCant = probe;
                     probe = highestCan + ((probe - (highestCan + 1)) >> 1);
                 }
+
+                // check for non-termination...
+                if( lowestCant == highestCan )
+                    throw new IllegalStateException( "SisyphusFitter.generate() won't terminate!" );
+
                 done = (lowestCant - highestCan == 1);
             }
+
+            if( logLevel( 3 ) )
+                log( "  after " + iterations + " iterations, adding vertice at " + points.get( highestCan ) );
 
             // emit the vertice...
             vertices.add( points.get( highestCan ) );
@@ -90,15 +112,19 @@ public class SisyphusFitter {
             current = highestCan;
         }
 
+        long time = System.currentTimeMillis() - startTime;
+        if( logLevel( 2 ) )
+            log( "Generated " + vertices.size() + " vertices in " + time + "ms");
     }
-    private static final int MAX_ITERATIONS = 25;
+
+
     /**
      * Returns true if the line defined by the start and end indices into the points held by this instance fits (within fit tolerance) the path that the
      * Sisyphus table would make from the same start and end points.
      *
      * @return true if the line fits.
      */
-    public boolean isOn( final int _start, final int _end ) {
+    private boolean fits( final int _start, final int _end ) {
 
         // some setup...
         Position start = points.get( _start );
@@ -113,6 +139,8 @@ public class SisyphusFitter {
 
         // where we keep our segment and sub-segment details...
         SegmentVertice st[] = {new SegmentVertice(), new SegmentVertice(), new SegmentVertice(), new SegmentVertice()};
+
+        // TODO: possible optimization: test points out of order, starting in the middle?
 
         // iterate over all the points in this line, testing them in order from start to end...
         SegmentVertice lastFit = new SegmentVertice();
@@ -151,7 +179,7 @@ public class SisyphusFitter {
                 else
                     return logFail( p, 0 );
 
-            if( !fitsCurve( m, b, st, lastFit, p, testPoint ) )
+            if( !fitsCurve( m, b, st, lastFit, p, testPoint, end ) )
                 return false;
         }
 
@@ -160,14 +188,14 @@ public class SisyphusFitter {
     }
 
 
-    private boolean fitsCurve( final double _m, final double _b, final SegmentVertice[] _st, final SegmentVertice _lastFit, final int _p, final Position _testPoint ) {
+    private boolean fitsCurve( final double _m, final double _b, final SegmentVertice[] _st, final SegmentVertice _lastFit, final int _p, final Position _testPoint, final Position _end ) {
     /*
         If we get here, then we have the more difficult case - we have to see if there's a point on the spiral that is within the fit tolerance to our
         point.  The smaller the starting segment size, the fewer iterations will be required.  We use the last fit location as our start of segment,
         and calculate a point roughly two times the point spacing for the end.
      */
         double ss = _lastFit.theta;
-        double se = getSegmentEnd( _m, _b, _p, _lastFit );
+        double se = getSegmentEnd( _m, _b, _p, _lastFit, _end );
 
             /*
                 Now we use successive segmentation of our line to narrow down the size of the segment that approaches the closest to our point.  If at any time
@@ -196,12 +224,16 @@ public class SisyphusFitter {
 
             if( doesNotFit( _m, _b, _st, _testPoint, i ) ) return logFail( _p, i );
 
+            // we're about to iterate too much, so here's a place to breakpoint and see what's happening...
+            if( i == MAX_ITERATIONS - 2 )
+                hashCode();
+
             // if we've iterated too much, then bail out, failing the fit...
             if( i == MAX_ITERATIONS - 1 )
                 return logFail( _p, i );
 
             // generate sub-segments, checking for fit as we go...
-            double dt = (_st[3].theta - _st[0].theta) / 3;
+            double dt = Utils.deltaTheta(_st[0].theta, _st[3].theta ) / 3;
             _st[1].theta = _st[0].theta + dt;
             _st[1].rho = getRhoFromTheta( _m, _b, _st[1].theta );
             _st[2].theta = _st[1].theta + dt;
@@ -247,22 +279,36 @@ public class SisyphusFitter {
         double tp2e = Utils.getTheta( _st[3].x - _testPoint.getX(), _st[3].y - _testPoint.getY() );
         double tpdt = Utils.deltaTheta( tp2s, tp2e );
         double aper = Math.abs( tpdt );
-        if( aper < Math.toRadians( 10 ) ) {
+        if( aper <= Math.PI/2 ) {
+
+
 
             // see if the spiral curve, relative to our test point, is convex or concave...
-            boolean positiveDeltaSlope = (getRadialSlope( _m, _b, _st[0].theta ) < getRadialSlope( _m, _b, _st[3].theta ));
+            double rss = getRadialSlope( _m, _b, _st[0].theta );
+            double rse = getRadialSlope( _m, _b, _st[3].theta );
+            double ds = rse - rss;
+            double sd = _st[0].distance;
+            double ed = _st[3].distance;
+            boolean positiveDeltaSlope = (rss < rse);
             boolean positiveDeltaTheta = (tpdt >= 0);
             boolean isConvex = (positiveDeltaSlope != positiveDeltaTheta);
 
             // calculate the distance between our segment ends...
             double dv = Math.hypot( _st[3].x - _st[0].x, _st[3].y - _st[0].y );
 
-            // calculate the height of the triangle (to the test point) formed by our segment ends and the test point...
-            double x0 = (_st[3].distance * _st[3].distance - _st[0].distance * _st[0].distance - dv * dv) / (-2 * dv);
-            double h = Math.sqrt( _st[0].distance * _st[0].distance - x0 * x0 );
+            // check for test point outside our segment...
+            double stc = Math.acos( (sd * sd + dv * dv - ed * ed) / (2 * sd * dv) );
+            double etc = Math.acos( (ed * ed + dv * dv - sd * sd) / (2 * ed * dv) );
+            if( (stc >= Math.PI/2) || (etc >= Math.PI/2) )
+                return true;  // this line can't be fitting in this case...
 
-            // adjust for convexity or concavity...
-            double ha = x0 * Math.tan( aper );
+            // calculate the height of the triangle (to the test point) formed by our segment ends and the test point...
+            double s = (sd + ed + dv) / 2;  // semi-perimeter...
+            double a = Math.sqrt( s * (s - sd) * (s - ed) * (s - dv) );  // area by Heron's formula...
+            double h = 2 * a / dv;   // get the height from the area...
+
+            // adjustment for convexity or concavity...
+            double ha = (dv / 2) * Math.tan( Math.abs( ds ) / 2 );
 
             // if fit tolerance < adjusted height, then we know we do NOT have a fit...
             return fitTolerance < h + (isConvex ? ha : -ha);
@@ -271,20 +317,24 @@ public class SisyphusFitter {
     }
 
 
+    // TODO: the commented-out part sometimes (with big slopes) didn't make the initial segment long enough to get the closest point to the current test
+    //       point.  Now we're returning the whole damned line.  Surely there must be a safe way to estimate a better starting point?
     // returns theta of the segment end...
-    private double getSegmentEnd( final double _m, final double _b, final int _current, final SegmentVertice _lastFit ) {
-        Position current = points.get( _current );
-        double dt = current.getTheta() - _lastFit.theta;
-        return _lastFit.theta + dt * 2;
+    private double getSegmentEnd( final double _m, final double _b, final int _current, final SegmentVertice _lastFit, final Position _end ) {
+        return _end.getTheta();
+//        Position current = points.get( _current );
+//        double dt = current.getTheta() - _lastFit.theta;
+//        return _lastFit.theta + dt * 4;
     }
 
 
     private boolean logFail( final int _point, final int _iteration ) {
+        if( !logLevel( 3 ) ) return false;
         Position point = points.get( _point );
         StringBuilder sb = new StringBuilder();
-        sb.append( "isOn determined that the " );
-        sb.append( _point );
-        sb.append( "th point at (" );
+        sb.append( "    fits determined that the " );
+        sb.append( Utils.prettyIteration( _point ) );
+        sb.append( " point at (" );
         sb.append( point.getX() );
         sb.append( ", " );
         sb.append( point.getY() );
@@ -382,6 +432,12 @@ public class SisyphusFitter {
 
     public List<Position> getVertices() {
         return vertices;
+    }
+
+
+    // Returns true if the current logging level is set to a value equal to or greater than the given value.
+    private boolean logLevel( final int _level ) {
+        return _level <= LOG_LEVEL;
     }
 
 
