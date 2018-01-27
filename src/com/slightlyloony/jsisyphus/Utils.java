@@ -20,22 +20,17 @@ public class Utils {
         double dif = _b - _a;
         return (dif < -Math.PI ) ? dif + Math.PI * 2 : ((dif > Math.PI) ? dif - Math.PI * 2 : dif);
     }
-//
-//
-//    /**
-//     * Adds the given angles together, producing a result that preserves the sign of the first operand, <i>unless</i> the result crosses zero.  For instance,
-//     * adding 175 degrees and 20 degrees will result in 195 degrees, <i>not</i> a normalized -165 degrees.  On the other hand, adding -10 degrees and 15
-//     * degrees will give the expected result of 5 degrees.
-//     *
-//     * @param _a the first operand, and the one that controls the sign of the result.
-//     * @param _b the second operand.
-//     * @return the sum of the two given angles.
-//     */
-//    public static double safeAngleAdd( final double _a, final double _b ) {
-//        double result = _a + _b;
-//        if( (_a >= 0) && (result < 0) )
-//
-//    }
+
+
+    /**
+     * Returns 1 if the given number is positive, -1 if it is negative.
+     *
+     * @param _a the number to test.
+     * @return if the given number is positive, 1; otherwise, -1.
+     */
+    public static int sign( final double _a ) {
+        return (_a < 0 ) ? -1 : 1;
+    }
 
 
     /**
@@ -53,8 +48,9 @@ public class Utils {
         double theta = Math.asin( _dx / Math.hypot( _dx, _dy ) );
 
         // correct the angle if _dy is actually negative...
-        return ( _dy < 0 ) ? Math.signum( theta) * Math.PI - theta : theta;
+        return ( _dy < 0 ) ? sign( theta ) * Math.PI - theta : theta;
     }
+
 
     /**
      * Returns the normalized form of the given angle, where "normalized" means between -pi and +pi.

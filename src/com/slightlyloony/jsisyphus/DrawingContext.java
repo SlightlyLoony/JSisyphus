@@ -377,8 +377,6 @@ public class DrawingContext {
 
 
     public void draw( final Line _line ) {
-        if( _line.getStart().distanceFrom( currentPosition ) > 0.001 )
-            hashCode();
         if( !mute ) {
             SisyphusFitter fitter = new SisyphusFitter( _line.getPoints(), this );
             fitter.generateVertices();

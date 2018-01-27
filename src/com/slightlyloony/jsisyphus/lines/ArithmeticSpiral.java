@@ -1,6 +1,7 @@
 package com.slightlyloony.jsisyphus.lines;
 
 import com.slightlyloony.jsisyphus.DrawingContext;
+import com.slightlyloony.jsisyphus.Utils;
 import com.slightlyloony.jsisyphus.positions.PolarPosition;
 import com.slightlyloony.jsisyphus.positions.Position;
 
@@ -55,13 +56,13 @@ public class ArithmeticSpiral extends ALine implements Line {
             if( Math.abs( rs ) > 1 ) {
 
                 // first we generate a rho for the next point, then get the theta from that...
-                npr = current.getRho() + Math.signum( deltaRho ) * 0.7 * _dc.getMaxPointDistance();
+                npr = current.getRho() + Utils.sign( deltaRho ) * 0.7 * _dc.getMaxPointDistance();
                 npt = getThetaFromRho( sm, sb, npr );
             }
 
             // otherwise, we do it with delta theta...
             else {
-                npt = current.getTheta() + Math.signum( deltaTheta ) * Math.atan( 0.7 * _dc.getMaxPointDistance() / current.getRho() );
+                npt = current.getTheta() + Utils.sign( deltaTheta ) * Math.atan( 0.7 * _dc.getMaxPointDistance() / current.getRho() );
                 npr = getRhoFromTheta( sm, sb, npt );
             }
 

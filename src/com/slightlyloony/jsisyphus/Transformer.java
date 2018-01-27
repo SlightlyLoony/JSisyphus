@@ -1,7 +1,6 @@
 package com.slightlyloony.jsisyphus;
 
 import com.slightlyloony.jsisyphus.positions.CartesianPosition;
-import com.slightlyloony.jsisyphus.positions.PolarPosition;
 import com.slightlyloony.jsisyphus.positions.Position;
 
 /**
@@ -33,25 +32,20 @@ public class Transformer {
 
         if( noop ) return _pos;
 
-        Position pos = _pos;
+        double x = _pos.getX();
+        double y = _pos.getY();
 
         // rotate...
-        if( rotation != 0 ) {
-            pos = new PolarPosition( _pos.getRho(), _pos.getTheta() + rotation );
-        }
+        double r = Math.hypot( x, y );
+        double t = Utils.getTheta( x, y ) + rotation;
+        x = r * Math.sin( t );
+        y = r * Math.cos( t );
 
         // translate...
-        if( !translation.isCenter() ) {
-            pos = new CartesianPosition(
-                    pos.getX() + translation.getX(),
-                    pos.getY() + translation.getY(),
-                    0 );
-        }
+        x += translation.getX();
+        y += translation.getY();
 
-        // make sure we have the right number of turns...
-        pos = new CartesianPosition( pos.getX(), pos.getY(), _pos.getTurns() );
-
-        return pos;
+        return new CartesianPosition( x, y, 0 );
     }
 
 
@@ -59,26 +53,20 @@ public class Transformer {
 
         if( noop ) return _pos;
 
-        Position pos = _pos;
+        double x = _pos.getX();
+        double y = _pos.getY();
 
         // translate...
-        if( !translation.isCenter() ) {
-            pos = new CartesianPosition(
-                    pos.getX() - translation.getX(),
-                    pos.getY() - translation.getY(),
-                    _pos.getTurns() );
-        }
+        x -= translation.getX();
+        y -= translation.getY();
 
         // rotate...
-        if( rotation != 0 ) {
-            pos = new CartesianPosition( pos.getX(), pos.getY(), 0 );   // TODO: this fixed a bad bug - but why???
-            pos = new PolarPosition( pos.getRho(), pos.getTheta() - rotation );
-        }
+        double r = Math.hypot( x, y );
+        double t = Utils.getTheta( x, y ) - rotation;
+        x = r * Math.sin( t );
+        y = r * Math.cos( t );
 
-        // make sure we have the right number of turns...
-        pos = new CartesianPosition( pos.getX(), pos.getY(), _pos.getTurns() );
-
-        return pos;
+        return new CartesianPosition( x, y, 0 );
     }
 
 

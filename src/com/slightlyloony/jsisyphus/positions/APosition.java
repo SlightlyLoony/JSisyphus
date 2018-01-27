@@ -1,5 +1,7 @@
 package com.slightlyloony.jsisyphus.positions;
 
+import com.slightlyloony.jsisyphus.Utils;
+
 import static com.slightlyloony.jsisyphus.CartesianQuadrant.*;
 
 /**
@@ -115,7 +117,7 @@ public class APosition implements Position {
         double theta = Math.asin( _dx / Math.hypot( _dx, _dy ) );
 
         // correct the angle if _dy is actually negative...
-        if( _dy < 0 ) theta = Math.signum( theta) * Math.PI - theta;
+        if( _dy < 0 ) theta = Utils.sign( theta ) * Math.PI - theta;
 
         return theta;
     }
