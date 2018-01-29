@@ -1,7 +1,6 @@
 package com.slightlyloony.jsisyphus.lines;
 
-import com.slightlyloony.jsisyphus.DrawingContext;
-import com.slightlyloony.jsisyphus.positions.Position;
+import com.slightlyloony.jsisyphus.Delta;
 
 import java.util.Collections;
 import java.util.List;
@@ -14,39 +13,28 @@ import java.util.List;
  */
 abstract class ALine implements Line {
 
-    public final DrawingContext dc;
-    private final List<Position> points;
+    private final List<Delta> deltas;
+    private final double maxPointDistance;
 
 
     /**
-     * Creates a new instance of this class with arbitrary sequence of points in actual coordinates.
+     * Creates a new instance of this class from the given values.
      *
-     * @param _points the sequence of points comprising this line.
+     * @param _maxPointDistance the maximum point distance for the deltas in this line.
+     * @param _deltas the deltas representing this line.
      */
-    protected ALine( final DrawingContext _dc, final List<Position> _points ) {
+    protected ALine( final double _maxPointDistance, final List<Delta> _deltas ) {
 
         // sanity check...
-        if( (_dc == null) || (_points == null ) )
-            throw new IllegalArgumentException( "Missing parameter(s) for ALine" );
+        if( (_deltas == null ) || (_deltas.size() == 0) || (_maxPointDistance <= 0) )
+            throw new IllegalArgumentException( "Missing or invalid parameter(s) for ALine" );
 
-        dc = _dc;
-        points = _points;
+        maxPointDistance = _maxPointDistance;
+        deltas = _deltas;
     }
 
 
-    @Override
-    public Position getStart() {
-        return points.get( 0 );
-    }
-
-
-    @Override
-    public Position getEnd() {
-        return points.size() == 0 ? null : points.get( points.size() - 1);
-    }
-
-
-    public List<Position> getPoints() {
-        return Collections.unmodifiableList( points );
+    public List<Delta> getDeltas() {
+        return Collections.unmodifiableList( deltas );
     }
 }

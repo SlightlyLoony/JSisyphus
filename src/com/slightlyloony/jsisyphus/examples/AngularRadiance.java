@@ -31,8 +31,9 @@ public class AngularRadiance extends ATrack {
         boolean inStroke = true;
 
         for( int i = 0; i < numLines; i++ ) {
-            dc.lineToRT( inStroke ? -.6 : .6, Math.PI / (inStroke ? -2 : 2) );
-            dc.spiralToRT( 0, skipRotation );
+            //dc.lineToRT( inStroke ? -.6 : .6, Math.PI / (inStroke ? -2 : 2) );
+            dc.lineToXY( inStroke ? -.2 : .2, inStroke ? -.8 : .8 );
+//            dc.spiralToRT( 0, skipRotation );
             dc.rotateBy( skipRotation );
             inStroke = !inStroke;
         }

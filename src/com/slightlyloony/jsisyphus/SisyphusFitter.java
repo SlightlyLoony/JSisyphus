@@ -189,26 +189,38 @@ public class SisyphusFitter {
 
 
     private boolean fitsCurve( final double _m, final double _b, final SegmentVertice[] _st, final SegmentVertice _lastFit, final int _p, final Position _testPoint, final Position _end ) {
-    /*
-        If we get here, then we have the more difficult case - we have to see if there's a point on the spiral that is within the fit tolerance to our
-        point.  The smaller the starting segment size, the fewer iterations will be required.  We use the last fit location as our start of segment,
-        and calculate a point roughly two times the point spacing for the end.
-     */
+        /*
+            If we get here, then we have the more difficult case - we have to see if there's a point on the spiral that is within the fit tolerance to our
+            point.  The smaller the starting segment size, the fewer iterations will be required.  We use the last fit location as our start of segment,
+            and calculate a point roughly two times the point spacing for the end.
+         */
+
+        // first see if the test point happens to directly fit the line with sufficient precision (this happens often on spirals, like erasures)...
+        SegmentVertice tv = new SegmentVertice();
+        tv.rho = _testPoint.getRho();
+        tv.theta = getThetaFromRho( _m, _b, tv.rho );
+        if( calcVertice( tv, _testPoint, _lastFit ) )
+            return true;
+        tv.theta = _testPoint.getTheta();
+        tv.rho = getRhoFromTheta( _m, _b, tv.theta );
+        if( calcVertice( tv, _testPoint, _lastFit ) )
+            return true;
+
         double ss = _lastFit.theta;
         double se = getSegmentEnd( _m, _b, _p, _lastFit, _end );
 
-            /*
-                Now we use successive segmentation of our line to narrow down the size of the segment that approaches the closest to our point.  If at any time
-                we identify a point on the spiral that is within the fit tolerance distance from our point, we bail out with a positive finding (it fits!).  We
-                keep this up until either we succeed or we determine that we can't possibly do so.
+        /*
+            Now we use successive segmentation of our line to narrow down the size of the segment that approaches the closest to our point.  If at any time
+            we identify a point on the spiral that is within the fit tolerance distance from our point, we bail out with a positive finding (it fits!).  We
+            keep this up until either we succeed or we determine that we can't possibly do so.
 
-                The segmentation algorithm is fairly simple on each iteration.  It divides the remaining segment into rough thirds, then identifies either one
-                or two of the sub-segments that might contain the closest point.  This identification is done by computing the delta distance to our point at
-                each of the four vertices defining the three sub-segments, then calculating (in start-to-end direction) whether that distance increases or
-                decreases in each segment.  From the pattern of those results we can determine which one or two sub-segments must contain the spiral's closest
-                approach to our point.  There are eight possible patterns (given three segments' delta distance, each plus or minus), and we use a table to
-                look up the result rather than computing it each time.
-             */
+            The segmentation algorithm is fairly simple on each iteration.  It divides the remaining segment into rough thirds, then identifies either one
+            or two of the sub-segments that might contain the closest point.  This identification is done by computing the delta distance to our point at
+            each of the four vertices defining the three sub-segments, then calculating (in start-to-end direction) whether that distance increases or
+            decreases in each segment.  From the pattern of those results we can determine which one or two sub-segments must contain the spiral's closest
+            approach to our point.  There are eight possible patterns (given three segments' delta distance, each plus or minus), and we use a table to
+            look up the result rather than computing it each time.
+         */
 
         // initialize the starting segment's end points...
         _st[0].theta = ss;
@@ -226,7 +238,7 @@ public class SisyphusFitter {
 
             // we're about to iterate too much, so here's a place to breakpoint and see what's happening...
             if( i == MAX_ITERATIONS - 2 )
-                hashCode();
+                hashCode();  // TODO: why is this ever being hit?
 
             // if we've iterated too much, then bail out, failing the fit...
             if( i == MAX_ITERATIONS - 1 )

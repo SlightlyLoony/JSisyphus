@@ -1,12 +1,14 @@
 package com.slightlyloony.jsisyphus.lines;
 
-import com.slightlyloony.jsisyphus.DrawingContext;
+import com.slightlyloony.jsisyphus.Delta;
 import com.slightlyloony.jsisyphus.Utils;
-import com.slightlyloony.jsisyphus.positions.PolarPosition;
-import com.slightlyloony.jsisyphus.positions.Position;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.slightlyloony.jsisyphus.CartesianQuadrant.*;
+import static com.slightlyloony.jsisyphus.CartesianQuadrant.PlusXPlusY;
+import static com.slightlyloony.jsisyphus.CartesianQuadrant.get;
 
 /**
  * Represents an arithmetic (Archimedian) spiral, which is a line with the polar form 𝚸 = m𝚹 + b, where "𝚸" is the distance from the center of the table
@@ -18,35 +20,69 @@ import java.util.List;
 public class ArithmeticSpiral extends ALine implements Line {
 
 
-    public ArithmeticSpiral( final DrawingContext _dc, final Position _end ) {
-        super( _dc, getPoints( _dc, _end ) );
+    /**
+     * Creates a representation of an arithmetic spiral line with the given end point position, spiral center position, and number of turns to make.  The
+     * deltas will be at most the maximum point distance apart.
+     *
+     * @param _maxPointDistance
+     * @param _ex
+     * @param _ey
+     * @param _cx
+     * @param _cy
+     * @param _turns
+     */
+    public ArithmeticSpiral( final double _maxPointDistance, final double _ex, final double _ey, final double _cx, final double _cy, final int _turns ) {
+        super( _maxPointDistance, getDeltas( _maxPointDistance, _ex, _ey, _cx, _cy, _turns ) );
     }
 
 
-    /* package */ static List<Position> getPoints(  final DrawingContext _dc, final Position _end ) {
+    /* package */ static List<Delta> getDeltas( final double _maxPointDistance, final double _ex, final double _ey, final double _cx, final double _cy, final int _turns ) {
 
-        // some setup...
-        Position current = _dc.getTransformer().untransform( _dc.getCurrentPosition() );
-        List<Position> points = new ArrayList<>();
-        points.add( _dc.getCurrentPosition() );
-        double deltaTheta = _end.getTheta() - current.getTheta();  // delta theta over the entire line (may be multiple revolutions)...
-        double deltaRho = _end.getRho() - current.getRho();        // delta rho over the entire line...
-        boolean isRadial = (Math.abs( deltaTheta ) < 1.0E-12 );
-        boolean isCircle = (Math.abs( deltaRho ) < 1.0E-12 );
+        // convenience variables...
+        double fmX = -_cx;
+        double fmY = -_cy;
+        double toX = _ex - _cx;
+        double toY = _ey - _cy;
 
-        // handle circular arcs and radials specially...
-        if( isCircle ) return CircularArc.getPointsFromCenter( _dc, Position.CENTER, deltaTheta );
-        if( isRadial ) return StraightLine.getPoints( _dc, _end );
+        // calculate the spiral distances (rho)...
+        double sRho = Math.hypot( fmX, fmY );                             // the distance from the center to the start point...
+        double eRho = Math.hypot( toX, toY );                             // the distance from the center to the end point...
+        double dRho = eRho - sRho;                                        // the delta rho over the length of the spiral...
+
+        // correct the turns if we're changing quadrants...
+        int newTurns = _turns;
+        if( (get( fmX, fmY ) == PlusXMinusY)  && ((get( toX, toY ) == MinusXMinusY) || (get( toX, toY ) == MinusXPlusY)) ) newTurns++;
+        if( (get( fmX, fmY ) == MinusXMinusY) && ((get( toX, toY ) == PlusXMinusY ) || (get( toX, toY ) == PlusXPlusY )) ) newTurns--;
+
+        // calculate the spiral angles (theta)...
+        double sTheta = Utils.getTheta( fmX, fmY );                       // the angle from the center to the start...
+        double eTheta = Utils.getTheta( toX, toY );                       // the angle from the center to the end...
+        eTheta += newTurns * 2 * Math.PI;                                 // correct for number of turns...
+        double dTheta = eTheta - sTheta;                                  // the delta theta over the length of the spiral...
+
+        // if we have a special case, handle them specially...
+        if( Math.abs( dRho ) < 1.0E-10 )   return CircularArc.getDeltasFromCenter( _maxPointDistance, _cx, _cy, dTheta);
+        if( Math.abs( dTheta ) < 1.0E-10 ) return StraightLine.getDeltas( _maxPointDistance, _ex, _ey );
 
         // handle a normal spiral...
-        double sm = deltaRho / deltaTheta;
-        double sb = current.getRho() - sm * current.getTheta();
-        boolean isClockwise = (deltaTheta >= 0);
+        double sm = dRho / dTheta;
+        double sb = sRho - sm * sTheta;
+        boolean isClockwise = (dTheta >= 0);
+        double curTheta = sTheta;
+        double curRho = sRho;
+        int estSize = (int) Math.ceil( 1.5 * (Math.abs( dTheta * Math.max( sRho, eRho )) + Math.abs( dRho )) / _maxPointDistance );
+        List<Delta> deltas = new ArrayList<>( estSize );
+        double lastX = 0;
+        double lastY = 0;
 
-        while( true ) {
+        for( int iters = 0; iters < 100000; iters++ ) {
+
+            // bail out if we iterate too much...
+            if( iters >= 99999 )
+                throw new IllegalStateException( "Arithmetic spiral deltas not terminating..." );
 
             // get the slope at our current point...
-            double rs = getRadialSlope( sm, sb, current.getTheta() );
+            double rs = getRadialSlope( sm, sb, curTheta );
 
             // calculate our new point's rho and theta...
             double npt;
@@ -56,28 +92,35 @@ public class ArithmeticSpiral extends ALine implements Line {
             if( Math.abs( rs ) > 1 ) {
 
                 // first we generate a rho for the next point, then get the theta from that...
-                npr = current.getRho() + Utils.sign( deltaRho ) * 0.7 * _dc.getMaxPointDistance();
+                npr = curRho + Utils.sign( dRho ) * 0.7 * _maxPointDistance / Math.min( 10, rs);  // dividing by the slope makes the points closer together near the center...
                 npt = getThetaFromRho( sm, sb, npr );
             }
 
             // otherwise, we do it with delta theta...
             else {
-                npt = current.getTheta() + Utils.sign( deltaTheta ) * Math.atan( 0.7 * _dc.getMaxPointDistance() / current.getRho() );
+                npt = curTheta + Utils.sign( dTheta ) * Math.atan( 0.7 * _maxPointDistance / curRho );
                 npr = getRhoFromTheta( sm, sb, npt );
             }
 
             // if we've reached the end, adjust and we're done...
-            if( isClockwise ? npt >= _end.getTheta() : npt <= _end.getTheta() ) {
-                points.add( _end );
+            if( isClockwise ? npt >= eTheta : npt <= eTheta ) {
+                deltas.add( new Delta( _ex - lastX, _ey - lastY ) );
                 break;
             }
 
-            // otherwise, stuff our new point away and carry on...
-            current = _dc.getTransformer().transform( new PolarPosition( npr, npt ) );
-            points.add( current );
+            // otherwise, stuff our new delta away and carry on...
+            double npx = _cx + npr * Math.sin( npt );
+            double npy = _cy + npr * Math.cos( npt );
+            curTheta = npt;
+            curRho = npr;
+            double dx = npx - lastX;
+            double dy = npy - lastY;
+            deltas.add( new Delta( dx, dy ) );
+            lastX = npx;
+            lastY = npy;
         }
 
-        return points;
+        return deltas;
     }
 
 

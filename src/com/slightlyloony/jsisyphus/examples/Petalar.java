@@ -17,7 +17,7 @@ public class Petalar extends ATrack {
 
     public void trace() throws IOException {
 
-        if( alreadyTraced() ) return;
+//        if( alreadyTraced() ) return;
 
         // some setup...
         int numPetals = 50;
@@ -26,13 +26,14 @@ public class Petalar extends ATrack {
         double petalWidth = Math.PI + petalAngle;
 
         // erase and get ourselves to the outside...
-        dc.eraseToRT( 1, 0 );
+        dc.lineToRT( 1, 0 );
+        //dc.eraseToRT( 1, 0 );
 
         // draw a ring of petals at our current outside radius...
         double insideRadius = getInsideRadius( petalAngle, outsideRadius );
 
         // draw rings until we're very close to the middle...
-        while( insideRadius >= .2 ) {
+        while( insideRadius >= .9 ) {  //.2
 
             // first the half-petal to get us to the inside...
             dc.arcToRT( insideRadius - outsideRadius, petalAngle / 2, petalWidth / 2 );

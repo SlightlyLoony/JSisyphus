@@ -48,7 +48,7 @@ public class Utils {
         double theta = Math.asin( _dx / Math.hypot( _dx, _dy ) );
 
         // correct the angle if _dy is actually negative...
-        return ( _dy < 0 ) ? sign( theta ) * Math.PI - theta : theta;
+        return ( _dy < 0 ) ? Utils.sign( theta ) * Math.PI - theta : theta;
     }
 
 

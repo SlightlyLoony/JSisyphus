@@ -17,12 +17,12 @@ public class SimpleRadiance extends ATrack {
 
     public void trace() throws IOException {
 
-        if( alreadyTraced() ) return;
+        //if( alreadyTraced() ) return;
 
         // inner and outer clear spaces...
         dc.eraseToRT(  .2, 0 );
         dc.lineToRT(   .8, 0 );
-        dc.eraseToRT( -.2, 0 );
+        dc.eraseToRT(  .2, Math.PI );
 
         // radial lines...
         int numLines = 199;
@@ -32,7 +32,7 @@ public class SimpleRadiance extends ATrack {
 
         for( int i = 0; i < numLines; i++ ) {
             dc.lineToRT( inStroke ? -.6 : .6, 0 );
-            dc.spiralToRT( 0, skipRotation );
+            dc.arcAroundRT( -dc.getCurrentPosition().getRho(), 0, skipRotation );
             dc.rotateBy( skipRotation );
             inStroke = !inStroke;
         }

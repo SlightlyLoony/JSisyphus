@@ -100,8 +100,8 @@ public class APosition implements Position {
 
         // figure out our turns...
         int newTurns = turns;
-        if( (get( x, y ) == PlusXMinusY)  && (get( newX, newY ) == MinusXMinusY) ) newTurns++;
-        if( (get( x, y ) == MinusXMinusY) && (get( newX, newY ) == PlusXMinusY) )  newTurns--;
+        if( (get( x, y ) == PlusXMinusY)  && ((get( newX, newY ) == MinusXMinusY) || (get( newX, newY ) == MinusXPlusY)) ) newTurns++;
+        if( (get( x, y ) == MinusXMinusY) && ((get( newX, newY ) == PlusXMinusY)  || (get( newX, newY ) == PlusXPlusY)))  newTurns--;
 
         return new CartesianPosition( newX, newY, newTurns );
     }
