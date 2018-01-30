@@ -10,14 +10,12 @@ import java.io.IOException;
 public class SimpleRadiance extends ATrack {
 
 
-    public SimpleRadiance( final String baseFileName ) {
-        super( baseFileName );
+    public SimpleRadiance() {
+        super( "SimpleRadiance" );
     }
 
 
     public void trace() throws IOException {
-
-        //if( alreadyTraced() ) return;
 
         // inner and outer clear spaces...
         dc.eraseToRT(  .2, 0 );
@@ -31,8 +29,8 @@ public class SimpleRadiance extends ATrack {
         boolean inStroke = true;
 
         for( int i = 0; i < numLines; i++ ) {
-            dc.lineToRT( inStroke ? -.6 : .6, 0 );
-            dc.arcAroundRT( -dc.getCurrentPosition().getRho(), 0, skipRotation );
+            dc.lineToRT( inStroke ? -0.6 : 0.6, 0 );
+            dc.arcAroundRT( inStroke ? -0.2 : -0.8, 0, skipRotation );
             dc.rotateBy( skipRotation );
             inStroke = !inStroke;
         }

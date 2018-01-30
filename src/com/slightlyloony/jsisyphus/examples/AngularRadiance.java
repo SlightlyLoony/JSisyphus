@@ -10,14 +10,12 @@ import java.io.IOException;
 public class AngularRadiance extends ATrack {
 
 
-    public AngularRadiance( final String baseFileName ) {
-        super( baseFileName );
+    public AngularRadiance() {
+        super( "AngularRadiance" );
     }
 
 
     public void trace() throws IOException {
-
-        if( alreadyTraced() ) return;
 
         // inner and outer clear spaces...
         dc.eraseToRT(  .2, 0 );
@@ -30,10 +28,18 @@ public class AngularRadiance extends ATrack {
         double skipRotation = skip * Math.PI * 2 / numLines;
         boolean inStroke = true;
 
+        // calculate our tangent line parameters...
+        double ts = Math.acos( .2 / .8 );
+        double tt = (Math.PI / 2) - ts;
+        double l = .8 * Math.sin( ts );
+        double dtd = Math.PI + tt;
+        double utd = tt;
+        double dtc = (Math.PI / 2) + tt;
+        double utc = 0;
+
         for( int i = 0; i < numLines; i++ ) {
-            //dc.lineToRT( inStroke ? -.6 : .6, Math.PI / (inStroke ? -2 : 2) );
-            dc.lineToXY( inStroke ? -.2 : .2, inStroke ? -.8 : .8 );
-//            dc.spiralToRT( 0, skipRotation );
+            dc.lineToRT( l, inStroke ? dtd : utd );
+            dc.arcAroundRT( inStroke ? 0.2 : -0.8, inStroke ? dtc : utc, skipRotation );
             dc.rotateBy( skipRotation );
             inStroke = !inStroke;
         }

@@ -9,11 +9,11 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
 
-        //new LineTests( "LineTests" ).trace();
+        new LineTests().traceIfNeeded();
 
-        //new SimpleRadiance( "SimpleRadiance" ).trace();
-        new AngularRadiance( "AngularRadiance" ).trace();
-        new Petalar( "Petalar" ).trace();
-        new NestedBubbles( "NestedBubbles" ).trace();
+        new SimpleRadiance().traceIfNeeded();
+        new AngularRadiance().traceIfNeeded();
+        new Petalar().traceIfNeeded();
+        new NestedBubbles(  ).trace();
     }
 }

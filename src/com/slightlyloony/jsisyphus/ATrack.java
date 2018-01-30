@@ -22,6 +22,13 @@ public abstract class ATrack {
     }
 
 
+    public void traceIfNeeded() throws IOException {
+        if( alreadyTraced() )
+            return;
+        trace();
+    }
+
+
     protected boolean alreadyTraced() {
         return new File( trackFileName ).exists() && new File( pngFileName ).exists();
     }

@@ -10,14 +10,12 @@ import java.io.IOException;
 public class Petalar extends ATrack {
 
 
-    public Petalar( final String baseFileName ) {
-        super( baseFileName );
+    public Petalar() {
+        super( "Petalar" );
     }
 
 
     public void trace() throws IOException {
-
-//        if( alreadyTraced() ) return;
 
         // some setup...
         int numPetals = 50;
@@ -26,22 +24,27 @@ public class Petalar extends ATrack {
         double petalWidth = Math.PI + petalAngle;
 
         // erase and get ourselves to the outside...
-        dc.lineToRT( 1, 0 );
-        //dc.eraseToRT( 1, 0 );
+        dc.eraseToRT( 1, 0 );
 
         // draw a ring of petals at our current outside radius...
         double insideRadius = getInsideRadius( petalAngle, outsideRadius );
 
         // draw rings until we're very close to the middle...
-        while( insideRadius >= .9 ) {  //.2
+        while( insideRadius >= .2 ) {
+
+            // compute our parameters for this turn around the table...
+            double hx = insideRadius * Math.sin( petalAngle / 2 );
+            double hy = -(outsideRadius - insideRadius * Math.cos( petalAngle / 2 ) );
+            double fx = insideRadius * Math.sin( petalAngle );
+            double fy = -(insideRadius - insideRadius * Math.cos( petalAngle ) );
 
             // first the half-petal to get us to the inside...
-            dc.arcToRT( insideRadius - outsideRadius, petalAngle / 2, petalWidth / 2 );
+            dc.arcToXY( hx, hy, petalWidth / 2 );
             dc.rotateBy( petalAngle / 2 );
 
             // then all our whole petals...
             for( int i = 0; i < numPetals; i++ ) {
-                dc.arcToRT( 0, petalAngle, petalWidth );
+                dc.arcToXY( fx, fy, petalWidth );
                 dc.rotateBy( petalAngle );
             }
 

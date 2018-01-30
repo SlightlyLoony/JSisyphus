@@ -10,8 +10,8 @@ import java.io.IOException;
 public class LineTests extends ATrack {
 
 
-    public LineTests( final String baseFileName ) {
-        super( baseFileName );
+    public LineTests() {
+        super( "LineTests" );
     }
 
 
