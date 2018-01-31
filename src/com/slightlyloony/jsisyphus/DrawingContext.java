@@ -306,8 +306,8 @@ public class DrawingContext {
             Position to = vertices.get( i );
             double dTheta = to.getTheta() - from.getTheta();
 
-            // if the distance is zero, just move to the next one...
-            if( from.distanceFrom( to ) < 0.001 ) continue;
+            // if the distance is zero and we didn't have a circle, just move to the next one...
+            if( (from.distanceFrom( to ) < 0.001) && (Math.abs( dTheta ) < 0.001) ) continue;
 
             // calculate our spiral's parameters...
             int t = Utils.getTurnsFromTheta( dTheta );

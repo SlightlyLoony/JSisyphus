@@ -14,6 +14,6 @@ public class Main {
         new SimpleRadiance().traceIfNeeded();
         new AngularRadiance().traceIfNeeded();
         new Petalar().traceIfNeeded();
-        new NestedBubbles(  ).trace();
+        new NestedBubbles(  ).traceIfNeeded();
     }
 }
