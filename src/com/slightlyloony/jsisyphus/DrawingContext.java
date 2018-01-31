@@ -1,9 +1,6 @@
 package com.slightlyloony.jsisyphus;
 
-import com.slightlyloony.jsisyphus.lines.ArithmeticSpiral;
-import com.slightlyloony.jsisyphus.lines.CircularArc;
-import com.slightlyloony.jsisyphus.lines.Line;
-import com.slightlyloony.jsisyphus.lines.StraightLine;
+import com.slightlyloony.jsisyphus.lines.*;
 import com.slightlyloony.jsisyphus.models.Model;
 import com.slightlyloony.jsisyphus.positions.Position;
 
@@ -231,6 +228,50 @@ public class DrawingContext {
         double dx = _dRho * Math.sin( _dTheta );
         double dy = _dRho * Math.cos( _dTheta );
         arcToXY( dx, dy, _arcAngle );
+    }
+
+
+    /**
+     * Draws a cubic Bézier curve from the current position to the given end position, with the curve controlled by the two given control point positions.
+     * All of the positions are relative to the current ball position, expressed as a delta x and delta y in the current rotation.  Control point 1
+     * controls the slope of the line as it leaves the starting point.  Control point 2 controls the slope of the line as it approaches the end point.
+     *
+     * @param _cp1X the difference in x between control point 1 and the current position.
+     * @param _cp1Y the difference in y between control point 1 and the current position.
+     * @param _cp2X the difference in x between control point 2 and the current position.
+     * @param _cp2Y the difference in y between control point 2 and the current position.
+     * @param _endX the difference in x between the ending position and the current position.
+     * @param _endY the difference in y between the ending position and the current position.
+     */
+    public void curveToXY( final double _cp1X, final double _cp1Y, final double _cp2X, final double _cp2Y, final double _endX, final double _endY ) {
+        Line line = new CubicBezierCurve( maxPointDistance, _cp1X, _cp1Y, _cp2X, _cp2Y, _endX, _endY );
+        draw( line );
+    }
+
+
+    /**
+     * Draws a cubic Bézier curve from the current position to the given end position, with the curve controlled by the two given control point positions.
+     * All of the positions are relative to the current ball position, expressed as a delta rho and delta theta in the current rotation.  Control point 1
+     * controls the slope of the line as it leaves the starting point.  Control point 2 controls the slope of the line as it approaches the end point.
+     *
+     * @param _cp1Rho   the difference in rho between control point 1 and the current position.
+     * @param _cp1Theta the difference in theta between control point 1 and the current position.
+     * @param _cp2Rho   the difference in rho between control point 2 and the current position.
+     * @param _cp2Theta the difference in theta between control point 2 and the current position.
+     * @param _endRho   the difference in rho between the ending position and the current position.
+     * @param _endTheta the difference in theta between the ending position and the current position.
+     */
+    public void curveToRT( final double _cp1Rho, final double _cp1Theta, final double _cp2Rho, final double _cp2Theta,
+                           final double _endRho, final double _endTheta ) {
+
+        // calculate our x, y offsets...
+        double cp1X = _cp1Rho * Math.sin( _cp1Theta );
+        double cp1Y = _cp1Rho * Math.cos( _cp1Theta );
+        double cp2X = _cp2Rho * Math.sin( _cp2Theta );
+        double cp2Y = _cp2Rho * Math.cos( _cp2Theta );
+        double endX = _endRho * Math.sin( _endTheta );
+        double endY = _endRho * Math.cos( _endTheta );
+        curveToXY( cp1X, cp1Y, cp2X, cp2Y, endX, endY );
     }
 
 

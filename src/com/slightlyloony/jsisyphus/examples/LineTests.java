@@ -40,6 +40,9 @@ public class LineTests extends ATrack {
         // make a nice spiral...
         dc.spiralToRT( .35, -Math.PI/2, .35, -Math.PI/2, 4 );
 
+        // how about a Bezier curve?
+        dc.curveToXY( .3, -.4, .2, -.2, .3, .3 );
+
         dc.renderPNG( pngFileName );
         dc.write( trackFileName );
     }

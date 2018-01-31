@@ -9,7 +9,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
 
-        new LineTests().traceIfNeeded();
+        new LineTests().trace();
 
         new SimpleRadiance().traceIfNeeded();
         new AngularRadiance().traceIfNeeded();
