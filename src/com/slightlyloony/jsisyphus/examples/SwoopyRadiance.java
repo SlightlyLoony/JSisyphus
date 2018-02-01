@@ -15,6 +15,7 @@ public class SwoopyRadiance extends ATrack {
     private static final double HALF_THETA = Math.PI / NUM_SWOOPS;
     private static final double INITIAL_CONTROL_POINT_RHO = 1.516;      // empirically determined; dependent on number of swoops...
     private static final double SWOOP_DECREMENT = 0.97;
+    private static final double MIN_SWOOP_DECREMENT = .01;
     private static final double SWOOP_ORIGIN_RHO = 0.1;
     private static final double SWOOP_INNER_RHO = 0.15;
     private static final double END_RHO = 2 * SWOOP_ORIGIN_RHO * Math.sin( HALF_THETA );
@@ -59,16 +60,20 @@ public class SwoopyRadiance extends ATrack {
 
             // draw our sub-swoops...
             double swoopLen = INITIAL_CONTROL_POINT_RHO;
-            while( swoopLen > SWOOP_INNER_RHO ) {
+            boolean clockwise = true;
+            while( !clockwise || swoopLen > SWOOP_INNER_RHO ) {
 
                 // draw a swoop...
-                dc.curveToRT( swoopLen, 0, swoopLen, FULL_THETA, END_RHO, END_THETA );
-
-                // get back to the swoop origin...
-                dc.arcAroundRT( -SWOOP_ORIGIN_RHO, FULL_THETA, -FULL_THETA );
+                if( clockwise )
+                    dc.curveToRT( swoopLen, 0, swoopLen, FULL_THETA, END_RHO, END_THETA );
+                else
+                    dc.curveToRT( swoopLen, FULL_THETA, swoopLen, 0, END_RHO, END_THETA - Math.PI );
 
                 // shorten the swoop a bit...
-                swoopLen *= SWOOP_DECREMENT;
+                swoopLen -= Math.max( MIN_SWOOP_DECREMENT, swoopLen * (1 - SWOOP_DECREMENT) );
+
+                // flip direction...
+                clockwise = !clockwise;
             }
 
             // get back to the end point...
