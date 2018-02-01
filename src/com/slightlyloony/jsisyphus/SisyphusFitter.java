@@ -16,7 +16,7 @@ import static com.slightlyloony.jsisyphus.Utils.log;
  */
 public class SisyphusFitter {
 
-    private static final int LOG_LEVEL = 3;  // [0..3], with higher numbers meaning more detailed logging...
+    private static final int LOG_LEVEL = 1;  // [0..3], with higher numbers meaning more detailed logging...
 
     private static final int MAX_ITERATIONS = 25;
 

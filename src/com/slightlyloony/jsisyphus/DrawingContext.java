@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -238,13 +239,13 @@ public class DrawingContext {
      *
      * @param _cp1X the difference in x between control point 1 and the current position.
      * @param _cp1Y the difference in y between control point 1 and the current position.
-     * @param _cp2X the difference in x between control point 2 and the current position.
-     * @param _cp2Y the difference in y between control point 2 and the current position.
+     * @param _cp2X the difference in x between control point 2 and the ending position.
+     * @param _cp2Y the difference in y between control point 2 and the ending position.
      * @param _endX the difference in x between the ending position and the current position.
      * @param _endY the difference in y between the ending position and the current position.
      */
     public void curveToXY( final double _cp1X, final double _cp1Y, final double _cp2X, final double _cp2Y, final double _endX, final double _endY ) {
-        Line line = new CubicBezierCurve( maxPointDistance, _cp1X, _cp1Y, _cp2X, _cp2Y, _endX, _endY );
+        Line line = new CubicBezierCurve( maxPointDistance, _cp1X, _cp1Y, _cp2X + _endX, _cp2Y + _endY, _endX, _endY );
         draw( line );
     }
 
@@ -256,8 +257,8 @@ public class DrawingContext {
      *
      * @param _cp1Rho   the difference in rho between control point 1 and the current position.
      * @param _cp1Theta the difference in theta between control point 1 and the current position.
-     * @param _cp2Rho   the difference in rho between control point 2 and the current position.
-     * @param _cp2Theta the difference in theta between control point 2 and the current position.
+     * @param _cp2Rho   the difference in rho between control point 2 and the ending position.
+     * @param _cp2Theta the difference in theta between control point 2 and the ending position.
      * @param _endRho   the difference in rho between the ending position and the current position.
      * @param _endTheta the difference in theta between the ending position and the current position.
      */
@@ -267,10 +268,10 @@ public class DrawingContext {
         // calculate our x, y offsets...
         double cp1X = _cp1Rho * Math.sin( _cp1Theta );
         double cp1Y = _cp1Rho * Math.cos( _cp1Theta );
-        double cp2X = _cp2Rho * Math.sin( _cp2Theta );
-        double cp2Y = _cp2Rho * Math.cos( _cp2Theta );
         double endX = _endRho * Math.sin( _endTheta );
         double endY = _endRho * Math.cos( _endTheta );
+        double cp2X = _cp2Rho * Math.sin( _cp2Theta );
+        double cp2Y = _cp2Rho * Math.cos( _cp2Theta );
         curveToXY( cp1X, cp1Y, cp2X, cp2Y, endX, endY );
     }
 
@@ -306,14 +307,21 @@ public class DrawingContext {
     }
 
 
+    private static final DecimalFormat THETA_FORMAT = new DecimalFormat( "#.########" );
+    private static final DecimalFormat RHO_FORMAT = new DecimalFormat( "#.########" );
+
     public void write( final String _fileName ) throws IOException {
         // TODO: clamp at rho == 1...
         // TODO: optimize by removing points along circle (esp. at rho == 1)...
+        // TODO: add log...
 
         Position current = Position.CENTER;
         StringBuilder out = new StringBuilder();
         for( Position position : vertices ) {
-            out.append( position.toVertice() );
+            out.append( THETA_FORMAT.format( position.getTheta() ) );
+            out.append( ' ' );
+            out.append( RHO_FORMAT.format( position.getRho() ) );
+            out.append( '\n' );
         }
         out.append( vertices.get( vertices.size() - 1 ).toVertice() );  // repeat the last vertice; we don't know why this is needed...
         Path path = new File( _fileName ).toPath();

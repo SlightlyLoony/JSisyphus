@@ -27,7 +27,10 @@ public class CubicBezierCurve extends ALine implements Line {
 
         // initially estimate the number of points as twice the max point separation on the straight-line distance between the start and the end...
         // if that turns out to not be enough, we'll double it and try again...
-        int numPoints = (int) Math.ceil( 2 * Math.hypot( _xEnd, _yEnd ) / _maxPointDistance );
+        double distEnd = Math.hypot( _xEnd, _yEnd );
+        double distCP1 = Math.hypot( _xControl1, _yControl1 );
+        double distCP2 = Math.hypot( _xControl2 - _xEnd, _yControl2 - _yEnd );
+        int numPoints = (int) Math.ceil( ( distEnd + distCP1 + distCP2) / _maxPointDistance );
 
         List<Delta> deltas = new ArrayList<>( numPoints );
 
