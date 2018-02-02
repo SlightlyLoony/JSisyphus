@@ -15,6 +15,7 @@ public class Main {
         new AngularRadiance().traceIfNeeded();
         new Petalar().traceIfNeeded();
         new NestedBubbles(  ).traceIfNeeded();
-        new SwoopyRadiance().trace();
+        new SwoopyRadiance().traceIfNeeded();
+        //new PolarValentine().trace();
     }
 }

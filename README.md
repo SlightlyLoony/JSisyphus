@@ -14,6 +14,18 @@ The model for *JSisyphus* is the standard Java graphics subsystem, specifically 
 ## Dependencies
 The only dependency JSisyphus has is on Java 1.8 or higher.  There are no external libraries required.
 
+## Getting started...
+At least for now, JSisyphus is suitable *only* for a developer to use.  To make new tracks, you must be able to write (fairly simple) Java programs.  The easiest way for a developer to use JSisyphus is to clone this repository locally, then use a suitable IDE (the author uses "IDEA" by JetBrains, but any other modern IDE should do) to fool around with it.  The root Java package for JSisyphus is __com.slightlyloony.jsisyphus__.  Within that package you'll find the __examples__ package, which has several sample track generating classes, and a __Main__ class that runs them.  That Main class is something you can run yourself, and if you do you'll see all the example tracks generated on your system, with the .thr and .png files for each.
+
+## Future directions...
+If enough people are interested, the author might be persuaded to add a domain-specific language (DSL) as a front end for JSisyphus.  This would be a textual programming language that's specific to the problem of generating tracks for the Sisyphus table.  You would create a text file with the Sisyphus table "program", then run it through the DSL to produce the same outputs that JSisyphus does today.  Such a DSL would allow programmers who don't know Java, and even clever non-programmers, to create new tracks without having to program in Java at all.  If such a DSL would interest you, please let the author know!  
+
+Here's a very simple example of what a Sisyphus table DSL might look like:
+
+    erase all to center
+    line to rho .3, theta 30 degrees
+    arc around center 360 degrees
+
 ## Why is *JSisyphus*' code so awful?
 The author is a retired software and hardware engineer who did this just for fun, and who (so far, anyway) has no code reviewers to upbraid him.  Please feel free to fill in this gap!  You may contact the author at tom@dilatush.com.
 

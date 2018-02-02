@@ -13,13 +13,14 @@ public class SwoopyRadiance extends ATrack {
     private static final int NUM_SWOOPS = 5;
     private static final double FULL_THETA = 2 * Math.PI / NUM_SWOOPS;
     private static final double HALF_THETA = Math.PI / NUM_SWOOPS;
-    private static final double INITIAL_CONTROL_POINT_RHO = 1.516;      // empirically determined; dependent on number of swoops...
+    private static final double INITIAL_CONTROL_POINT_RHO = 1.35;      // empirically determined; dependent on number of swoops...
     private static final double SWOOP_DECREMENT = 0.97;
-    private static final double MIN_SWOOP_DECREMENT = .01;
+    private static final double MIN_SWOOP_DECREMENT = .02;
     private static final double SWOOP_ORIGIN_RHO = 0.1;
     private static final double SWOOP_INNER_RHO = 0.15;
     private static final double END_RHO = 2 * SWOOP_ORIGIN_RHO * Math.sin( HALF_THETA );
     private static final double END_THETA = (Math.PI + FULL_THETA) / 2;
+    private static final double INNER_ERASE_RHO = SWOOP_ORIGIN_RHO * 1.25;
 
 
     public SwoopyRadiance() {
@@ -29,39 +30,17 @@ public class SwoopyRadiance extends ATrack {
 
     public void trace() throws IOException {
 
-        // some setup...
-        dc.lineToRT( SWOOP_ORIGIN_RHO, 0 );
+        // erase in to the swoop's origin...
+        dc.lineToRT( 1, 0 );
+        dc.eraseToRT( -(1 - SWOOP_ORIGIN_RHO), 0 );
 
-        // draw our "layers" of swoops, rotating between them...
-        swoopLayer();
-        dc.arcAroundRT( -SWOOP_ORIGIN_RHO, 0, HALF_THETA );
-        dc.rotateBy( HALF_THETA );
-        swoopLayer();
-        dc.arcAroundRT( -SWOOP_ORIGIN_RHO, 0, HALF_THETA / 2 );
-        dc.rotateBy( HALF_THETA / 2 );
-        swoopLayer();
-        dc.arcAroundRT( -SWOOP_ORIGIN_RHO, 0, HALF_THETA );
-        dc.rotateBy( HALF_THETA );
-        swoopLayer();
-
-        // now erase in...
-        dc.lineToRT( -SWOOP_ORIGIN_RHO, 0 );
-        dc.eraseToRT( SWOOP_INNER_RHO, 0 );
-
-        dc.renderPNG( pngFileName );
-        dc.write( trackFileName );
-    }
-
-
-    private void swoopLayer() {
-
-        // draw the "lower" layer of swoops...
+        // draw our swoops...
         for( int s = 0; s < NUM_SWOOPS; s++ ) {
 
             // draw our sub-swoops...
             double swoopLen = INITIAL_CONTROL_POINT_RHO;
             boolean clockwise = true;
-            while( !clockwise || swoopLen > SWOOP_INNER_RHO ) {
+            while( clockwise || swoopLen > SWOOP_INNER_RHO ) {
 
                 // draw a swoop...
                 if( clockwise )
@@ -76,11 +55,15 @@ public class SwoopyRadiance extends ATrack {
                 clockwise = !clockwise;
             }
 
-            // get back to the end point...
-            dc.arcAroundRT( -SWOOP_ORIGIN_RHO, 0, FULL_THETA );
-
             // rotate to the right place...
             dc.rotateBy( FULL_THETA );
         }
+
+        // now erase the innards...
+        dc.lineToRT( INNER_ERASE_RHO - SWOOP_ORIGIN_RHO, 0 );
+        dc.eraseToRT( -INNER_ERASE_RHO, 0 );
+
+        dc.renderPNG( pngFileName );
+        dc.write( trackFileName );
     }
 }
