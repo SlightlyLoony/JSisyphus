@@ -20,10 +20,10 @@ public class CubicBezierCurve extends ALine implements Line {
         super( _maxPointDistance, getDeltas( _maxPointDistance, _xControl1, _yControl1, _xControl2, _yControl2, _xEnd, _yEnd ) );
     }
 
-    /* package */ static List<Delta> getDeltas( final double _maxPointDistance,
-                                                final double _xControl1, final double _yControl1,  // the first control point (controls the slope from the start)...
-                                                final double _xControl2, final double _yControl2,  // the second control point (controls the slope from the end)... ) {
-                                                final double _xEnd,      final double _yEnd ) {    // the end of the line...
+    private static List<Delta> getDeltas( final double _maxPointDistance,
+                                          final double _xControl1, final double _yControl1,  // the first control point (controls the slope from the start)...
+                                          final double _xControl2, final double _yControl2,  // the second control point (controls the slope from the end)... ) {
+                                          final double _xEnd, final double _yEnd ) {    // the end of the line...
 
         // initially estimate the number of points as twice the max point separation on the straight-line distance between the start and the end...
         // if that turns out to not be enough, we'll double it and try again...
@@ -79,7 +79,6 @@ public class CubicBezierCurve extends ALine implements Line {
      * @return the x or y coordinate at the given interval.
      */
     private static double poly( final double _t, final double _p1, final double _p2, final double _p3 ) {
-        double ts = Math.pow( 1 - _t, 3 );
         double t1 = 3 * Math.pow( 1 - _t, 2 ) * _t;
         double t2 = 3 * (1 - _t) * Math.pow( _t, 2 );
         double te = Math.pow( _t, 3 );

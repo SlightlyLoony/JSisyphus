@@ -69,6 +69,32 @@ public class DrawingContext {
 
 
     /**
+     * Erases from the current position to the given end point, spiraling either in or out depending on whether the given end point is inside or outside the
+     * current position.  The number of turns made will ensure that the spacing is no more than the current erase spacing.
+     *
+     * @param _end the end point of the erasure.
+     */
+    public void eraseTo( final Point _end ) {
+
+        // get the absolute end point...
+        Point abEnd = _end.abs( this );
+
+        // figure the delta rho and theta for the spiral...
+        double dsRho = abEnd.rho - currentPosition.getRho();
+        double dsTheta = abEnd.theta - currentPosition.getTheta();
+
+        // figure out how many turns to make...
+        double drhopt = eraseSpacing / model.tableRadiusMeters();        // gives us the change in rho per turn...
+        int turns = (int) Math.floor( Math.abs( dsRho / drhopt ));       // gives us the number of turns we'll actually need...
+        if( dsTheta < 0 ) turns = -turns;                                // correct for the direction...
+        if( (_end.theta == 0) && (currentPosition.getRho() > 0) ) turns = -turns;
+
+        Line line = new ArithmeticSpiral( maxPointDistance, _end.x, _end.y, -currentPosition.getX(), -currentPosition.getY(), turns );
+        draw( line );
+    }
+
+
+    /**
      * Erases from the current position to the given relative X, Y, turns position, spiraling either in or out depending on whether the "to" rho is less than
      * or greater than the current position's rho.  The number of turns made will ensure that the spacing is no more than the current erase spacing.
      *
@@ -76,9 +102,7 @@ public class DrawingContext {
      * @param _dY the difference in y between the end position and the current position.
      */
     public void eraseToXY( final double _dX, final double _dY ) {
-        double theta = Utils.getTheta( _dX, _dY );
-        double rho = Math.hypot( _dX, _dY );
-        eraseToRT( rho, theta );
+        eraseTo( Point.fromXY( _dX, _dY ) );
     }
 
 
@@ -91,23 +115,18 @@ public class DrawingContext {
      * @param _dTheta the difference in theta between the ending position and the current position.
      */
     public void eraseToRT( final double _dRho, final double _dTheta ) {
+        eraseTo( Point.fromRT( _dRho, _dTheta ) );
+    }
 
-        // figure out where our end point is, both as delta from current position and as actual...
-        double x = _dRho * Math.sin( _dTheta );
-        double y = _dRho * Math.cos( _dTheta );
-        Position end = currentPosition.fromDeltaXY( x, y );
 
-        // figure the delta rho and theta for the spiral...
-        double dsRho = end.getRho() - currentPosition.getRho();
-        double dsTheta = end.getTheta() - currentPosition.getTheta();
-
-        // figure out how many turns to make...
-        double drhopt = eraseSpacing / model.tableRadiusMeters();        // gives us the change in rho per turn...
-        int turns = (int) Math.floor( Math.abs( dsRho / drhopt ));       // gives us the number of turns we'll actually need...
-        if( dsTheta < 0 ) turns = -turns;                                // correct for the direction...
-        if( (_dTheta == 0) && (currentPosition.getRho() > 0) ) turns = -turns;
-
-        Line line = new ArithmeticSpiral( maxPointDistance, x, y, -currentPosition.getX(), -currentPosition.getY(), turns );
+    /**
+     * Draws a straight line from the current position to the given point.  The given point's coordinates are considered relative to the current position, and
+     * in the current rotation.
+     *
+     * @param _point the point to draw a line to, with coordinates relative to the current position.
+     */
+    public void lineTo( final Point _point ) {
+        Line line = new StraightLine( maxPointDistance, _point.x, _point.y );
         draw( line );
     }
 
@@ -119,8 +138,7 @@ public class DrawingContext {
      * @param _dY the difference in y between the ending position and the current position.
      */
     public void lineToXY( final double _dX, final double _dY ) {
-        Line line = new StraightLine( maxPointDistance, _dX, _dY );
-        draw( line );
+        lineTo( Point.fromXY( _dX, _dY ) );
     }
 
 
@@ -132,7 +150,21 @@ public class DrawingContext {
      * @param _dTheta the difference in theta between the ending position and the current position.
      */
     public void lineToRT( final double _dRho, final double _dTheta ) {
-        Line line = new StraightLine( maxPointDistance, _dRho * Math.sin( _dTheta ), _dRho * Math.cos( _dTheta ) );
+        lineTo( Point.fromRT( _dRho, _dTheta ) );
+    }
+
+
+    /**
+     * Draws an arithmetic spiral from the current position to the given end point.  The center of the spiral will be at the given center point.
+     * The spiral will have the given number of complete turns plus (possibly) a partial turn after that to reach the specified end point.  Both the end
+     * position and center position are relative to the current position, and in the current rotation.
+     *
+     * @param _end the end point of the spiral.
+     * @param _center the center point of the spiral.
+     * @param _turns the number of complete turns (positive for clockwise, negative for anti-clockwise).
+     */
+    public void spiralTo( final Point _end, final Point _center, final int _turns ) {
+        Line line = new ArithmeticSpiral( maxPointDistance, _end.x, _end.y, _center.x, _center.y, _turns );
         draw( line );
     }
 
@@ -149,8 +181,7 @@ public class DrawingContext {
      * @param _turns the number of complete turns (positive for clockwise, negative for anti-clockwise).
      */
     public void spiralToXY( final double _dxEnd, final double _dyEnd, final double _dxCenter, final double _dyCenter, final int _turns ) {
-        Line line = new ArithmeticSpiral( maxPointDistance, _dxEnd, _dyEnd, _dxCenter, _dyCenter, _turns );
-        draw( line );
+        spiralTo( Point.fromXY( _dxEnd, _dyEnd ), Point.fromXY( _dxCenter, _dyCenter ), _turns );
     }
 
 
@@ -166,11 +197,20 @@ public class DrawingContext {
      * @param _turns the number of complete turns (positive for clockwise, negative for anti-clockwise).
      */
     public void spiralToRT( final double _drEnd, final double _dtEnd, final double _drCenter, final double _dtCenter, final int _turns ) {
-        double dxe = _drEnd * Math.sin( _dtEnd );
-        double dye = _drEnd * Math.cos( _dtEnd );
-        double dxc = _drCenter * Math.sin( _dtCenter );
-        double dyc = _drCenter * Math.cos( _dtCenter );
-        spiralToXY( dxe, dye, dxc, dyc, _turns );
+        spiralTo( Point.fromRT( _drEnd, _dtEnd ), Point.fromRT( _drCenter, _dtCenter ), _turns );
+    }
+
+
+    /**
+     * Draws a circular arc with the given arc angle from the current position around the given center point.  The center point's location is relative to
+     * the current position, in the current rotation.  Positive arc angles are drawn clockwise, negative arc angles anti-clockwise.
+     *
+     * @param _center the center point of the arc, relative to the current position and in the current rotation.
+     * @param _arcAngle the angle of the arc to be drawn.
+     */
+    public void arcAround( final Point _center, final double _arcAngle ) {
+        Line line = CircularArc.fromCenter( maxPointDistance, _center.x, _center.y, _arcAngle );
+        draw( line );
     }
 
 
@@ -183,8 +223,7 @@ public class DrawingContext {
      * @param _arcAngle the angular fraction of the arc to draw.
      */
     public void arcAroundXY( final double _dX, final double _dY, final double _arcAngle ) {
-        Line line = CircularArc.fromCenter( maxPointDistance, _dX, _dY, _arcAngle );
-        draw( line );
+        arcAround( Point.fromXY( _dX, _dY ), _arcAngle );
     }
 
 
@@ -197,9 +236,20 @@ public class DrawingContext {
      * @param _arcAngle the angular fraction of the arc to draw.
      */
     public void arcAroundRT( final double _dRho, final double _dTheta, final double _arcAngle ) {
-        double dx = _dRho * Math.sin( _dTheta );
-        double dy = _dRho * Math.cos( _dTheta );
-        arcAroundXY( dx, dy, _arcAngle );
+        arcAround( Point.fromRT( _dRho, _dTheta ), _arcAngle );
+    }
+
+
+    /**
+     * Draws a circular arc with the given arc angle from the current position to the given point relative to the current position, in the current rotation.
+     * Positive arc angles are drawn clockwise, negative arc angles anti-clockwise.
+     *
+     * @param _end
+     * @param _arcAngle
+     */
+    public void arcTo( final Point _end, final double _arcAngle ) {
+        Line line = CircularArc.fromEndPoint( maxPointDistance, _end.x, _end.y, _arcAngle );
+        draw( line );
     }
 
 
@@ -212,8 +262,7 @@ public class DrawingContext {
      * @param _arcAngle the angular fraction of the arc to draw.
      */
     public void arcToXY( final double _dX, final double _dY, final double _arcAngle ) {
-        Line line = CircularArc.fromEndPoint( maxPointDistance, _dX, _dY, _arcAngle );
-        draw( line );
+        arcTo( Point.fromXY( _dX, _dY ), _arcAngle );
     }
 
 
@@ -226,9 +275,25 @@ public class DrawingContext {
      * @param _arcAngle the angular fraction of the arc to draw.
      */
     public void arcToRT( final double _dRho, final double _dTheta, final double _arcAngle ) {
-        double dx = _dRho * Math.sin( _dTheta );
-        double dy = _dRho * Math.cos( _dTheta );
-        arcToXY( dx, dy, _arcAngle );
+        arcTo( Point.fromRT( _dRho, _dTheta ), _arcAngle );
+    }
+
+
+    /**
+     * Draws a cubic Bézier curve from the current position to the given end point, with the curve controlled by the two given control point.  Control point 1
+     * is relative to the current position, and controls the slope of the line as it leaves the current position.  Control point 2 is relative to the end
+     * point, and controls the slope of the line as it approaches the end point.  The end point is relative to the current position.
+     *
+     * @param _cp1 control point 1, relative to the current position.
+     * @param _cp2 control point 2, relative to the end point.
+     * @param _end the end point, relative to the current position.
+     */
+    public void curveTo( final Point _cp1, final Point _cp2, final Point _end ) {
+
+        // convert end-relative CP2 to be current position-relative...
+        Point cp2 = _end.sum( _cp2 );
+        Line line = new CubicBezierCurve( maxPointDistance, _cp1.x, _cp1.y, cp2.x, cp2.y, _end.x, _end.y );
+        draw( line );
     }
 
 
@@ -245,8 +310,7 @@ public class DrawingContext {
      * @param _endY the difference in y between the ending position and the current position.
      */
     public void curveToXY( final double _cp1X, final double _cp1Y, final double _cp2X, final double _cp2Y, final double _endX, final double _endY ) {
-        Line line = new CubicBezierCurve( maxPointDistance, _cp1X, _cp1Y, _cp2X + _endX, _cp2Y + _endY, _endX, _endY );
-        draw( line );
+        curveTo( Point.fromXY( _cp1X, _cp1Y ), Point.fromXY( _cp2X, _cp2Y ), Point.fromXY( _endX, _endY ) );
     }
 
 
@@ -264,15 +328,7 @@ public class DrawingContext {
      */
     public void curveToRT( final double _cp1Rho, final double _cp1Theta, final double _cp2Rho, final double _cp2Theta,
                            final double _endRho, final double _endTheta ) {
-
-        // calculate our x, y offsets...
-        double cp1X = _cp1Rho * Math.sin( _cp1Theta );
-        double cp1Y = _cp1Rho * Math.cos( _cp1Theta );
-        double endX = _endRho * Math.sin( _endTheta );
-        double endY = _endRho * Math.cos( _endTheta );
-        double cp2X = _cp2Rho * Math.sin( _cp2Theta );
-        double cp2Y = _cp2Rho * Math.cos( _cp2Theta );
-        curveToXY( cp1X, cp1Y, cp2X, cp2Y, endX, endY );
+        curveTo( Point.fromRT( _cp1Rho, _cp1Theta ), Point.fromRT( _cp2Rho, _cp2Theta ), Point.fromRT( _endRho, _endTheta ) );
     }
 
 
@@ -534,4 +590,10 @@ public class DrawingContext {
     public void setMute( final boolean _mute ) {
         mute = _mute;
     }
+
+
+    public double getCurrentRotation() {
+        return currentRotation;
+    }
+
 }
