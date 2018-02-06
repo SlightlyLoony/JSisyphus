@@ -105,7 +105,7 @@ public class Point {
      * @return a new instance of this class with the same coordinates as the given position.
      */
     public static Point fromPosition( final Position _position ) {
-        return fromXY( _position.getX(), _position.getY() );
+        return fromRT( _position.getRho(), _position.getTheta() );
     }
 
 

@@ -40,6 +40,8 @@ public class LineTests extends ATrack {
             dc.arcTo( one, -PI / 2 );
             dc.arcTo( minusOne, PI / 2 );
             dc.arcTo( minusOne, -PI / 2 );
+            dc.lineToXY( .5, 0 );
+            dc.lineToXY( -.5, 0 );
             dc.rotateBy( PI/4 );
         }
 

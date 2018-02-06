@@ -6,6 +6,8 @@ import com.slightlyloony.jsisyphus.Utils;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Math.*;
+
 /**
  * Represents an arc of a circle.
  *
@@ -28,8 +30,8 @@ public class CircularArc extends ALine implements Line {
     private static List<Delta> getDeltas( final double _maxPointDistance, final double _arcAngle,
                                           final double _xCenter, final double _yCenter, final double _radius ) {
 
-        double arclen = _radius * Math.abs( _arcAngle );
-        int numSegments = (int) Math.ceil( arclen / _maxPointDistance );
+        double arclen = _radius * abs( _arcAngle );
+        int numSegments = (int) ceil( arclen / _maxPointDistance );
         double startAngle = Utils.getTheta( -_xCenter, -_yCenter );
         double lastX = 0;
         double lastY = 0;
@@ -38,8 +40,8 @@ public class CircularArc extends ALine implements Line {
         for( int segment = 1; segment <= numSegments; segment++ ) {
 
             double currentAngle =  startAngle + (1.0 * segment / numSegments) * _arcAngle;
-            double nx = _xCenter + _radius * Math.sin( currentAngle );
-            double ny = _yCenter + _radius * Math.cos( currentAngle );
+            double nx = _xCenter + _radius * sin( currentAngle );
+            double ny = _yCenter + _radius * cos( currentAngle );
             deltas.add( new Delta( nx - lastX, ny - lastY ) );
             lastX = nx;
             lastY = ny;
@@ -64,7 +66,7 @@ public class CircularArc extends ALine implements Line {
     /* package */ static List<Delta> getDeltasFromEnd( final double _maxPointDistance, final double _x, final double _y, final double _arcAngle ) {
 
         // guard against the start and end points being too close together (can't compute the center accurately then)...
-        double d = Math.hypot( _x, _y );
+        double d = hypot( _x, _y );
         if( d < 0.01 )
             throw new IllegalStateException( "Start and end points of arc too close together!" );
 
@@ -73,15 +75,15 @@ public class CircularArc extends ALine implements Line {
            triangle.  Here we compute the radius using the height triangle and a bit of trigonometry.
         */
 
-        // normalizes to [0..2*pi]...
-        double nt = Utils.normalizeTheta( _arcAngle );    // normalizes to [-pi..pi]...
-        if( nt < 0 ) nt += 2 * Math.PI;                   // fixes it to [0..2*pi]...
+        // normalize arc angle to the range [-2pi..2pi]...
+        double nat = _arcAngle;
+        if( abs( nat ) > 2 * PI ) nat += Utils.sign( nat ) * -2 * PI * floor( abs( nat ) / (2 * PI) );
 
         // compute the angle at the arc's start and end points...
-        double at = Math.abs( (Math.PI - nt ) / 2 );
+        double at = abs( (PI - abs( nat ) ) / 2 );
 
         // compute the radius...
-        double radius = (d / 2) / Math.cos( at );
+        double radius = abs( (d / 2) / cos( at ) );
 
         /*
            Now we figure out where the center is.  There are two possibilities remaining with the calculation so far, as the center of the arc could be on
@@ -90,18 +92,18 @@ public class CircularArc extends ALine implements Line {
 
         // if the arc is < 180 degrees, the center will be on the other side of the start -> end line from the arc.
         // if the arc is >= 180 degrees, the center will be on the same side of the start -> end line as the arc.
-        boolean isSameSide = (Math.abs( Utils.normalizeTheta( _arcAngle ) ) >= Math.PI);
+        boolean isOtherSide = ( abs( nat ) < PI );
 
         // the center will be on different sides depending on whether we're drawing clockwise or anti-clockwise...
         boolean isClockwise = (_arcAngle >= 0);
 
         // finally we can decide whether we need to invert the center's location...
-        boolean invert = isClockwise == isSameSide;
+        boolean invert = isClockwise ^ isOtherSide;
 
         // now we compute where the center actually is...
-        double et = Utils.getTheta( _x, _y );                        // the angle of the end point from the start point...
-        double xc = radius * Math.sin( et + (invert ?  at : -at) );  // the x location of the center from the start point...
-        double yc = radius * Math.cos( et + (invert ? -at :  at) );  // the y location of the center from the start point...
+        double et = Utils.getTheta( _x, _y );                   // the angle of the end point from the start point...
+        double xc = radius * sin( et + (invert ? -at : at) );  // the x location of the center from the start point...
+        double yc = radius * cos( et + (invert ? -at : at) );  // the y location of the center from the start point...
 
         return getDeltas( _maxPointDistance, _arcAngle, xc, yc, radius );
     }
@@ -123,10 +125,10 @@ public class CircularArc extends ALine implements Line {
 
         // normalizes to [0..2*pi]...
         double nt = Utils.normalizeTheta( _arcAngle );    // normalizes to [-pi..pi]...
-        if( nt < 0 ) nt += 2 * Math.PI;                   // fixes it to [0..2*pi]...
+        if( nt < 0 ) nt += 2 * PI;                   // fixes it to [0..2*pi]...
 
         // start -> center length is the radius...
-        double radius = Math.hypot( _x, _y );
+        double radius = hypot( _x, _y );
 
         return getDeltas( _maxPointDistance, _arcAngle, _x, _y, radius );
     }

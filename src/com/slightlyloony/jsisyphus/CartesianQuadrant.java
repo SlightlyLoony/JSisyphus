@@ -13,4 +13,9 @@ public enum CartesianQuadrant {
 
         return (_x >= 0 ) ? ((_y >= 0) ? PlusXPlusY : PlusXMinusY ) : ((_y >= 0) ? MinusXPlusY : MinusXMinusY );
     }
+
+
+    public static CartesianQuadrant get( final Point _point ) {
+        return get( _point.x, _point.y );
+    }
 }

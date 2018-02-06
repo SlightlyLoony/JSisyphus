@@ -31,7 +31,7 @@ public class PolarValentine extends ATrack {
 
     public void trace() throws IOException {
 
-        dc.spiralTo( Point.fromRT( 1, 0 ), Point.fromRT( 0,0 ), 1 );
+        dc.spiralTo( Point.fromRT( 1, 0 ), Point.fromRT( 0,0 ), 0, 1 );
         dc.eraseTo( Point.fromRT( 1, PI ) );
         HeartDef def = new HeartDef();
 
@@ -48,8 +48,8 @@ public class PolarValentine extends ATrack {
                 sf = nsf;
             }
 
-            dc.lineToRT( dc.getCurrentPosition().getRho() - .03, PI );
-            dc.arcAround( Point.fromRT( .03, PI ), 2 * PI / STICKS );
+            dc.home();
+            dc.arcAroundTableCenter( 2 * PI / STICKS );
             dc.rotateBy( 2 * PI / STICKS );
         }
 

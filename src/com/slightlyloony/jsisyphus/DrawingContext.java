@@ -2,6 +2,7 @@ package com.slightlyloony.jsisyphus;
 
 import com.slightlyloony.jsisyphus.lines.*;
 import com.slightlyloony.jsisyphus.models.Model;
+import com.slightlyloony.jsisyphus.positions.PolarPosition;
 import com.slightlyloony.jsisyphus.positions.Position;
 
 import javax.imageio.ImageIO;
@@ -89,7 +90,7 @@ public class DrawingContext {
         if( dsTheta < 0 ) turns = -turns;                                // correct for the direction...
         if( (_end.theta == 0) && (currentPosition.getRho() > 0) ) turns = -turns;
 
-        Line line = new ArithmeticSpiral( maxPointDistance, _end.x, _end.y, -currentPosition.getX(), -currentPosition.getY(), turns );
+        Line line = new ArithmeticSpiral( maxPointDistance, _end, Point.fromXY( -currentPosition.getX(), -currentPosition.getY() ), 0, turns );
         draw( line );
     }
 
@@ -161,10 +162,11 @@ public class DrawingContext {
      *
      * @param _end the end point of the spiral.
      * @param _center the center point of the spiral.
+     * @param _centerTheta the theta for either the start or end of the spiral, if it hits the center.
      * @param _turns the number of complete turns (positive for clockwise, negative for anti-clockwise).
      */
-    public void spiralTo( final Point _end, final Point _center, final int _turns ) {
-        Line line = new ArithmeticSpiral( maxPointDistance, _end.x, _end.y, _center.x, _center.y, _turns );
+    public void spiralTo( final Point _end, final Point _center, final double _centerTheta, final int _turns ) {
+        Line line = new ArithmeticSpiral( maxPointDistance, _end, _center, _centerTheta, _turns );
         draw( line );
     }
 
@@ -181,7 +183,7 @@ public class DrawingContext {
      * @param _turns the number of complete turns (positive for clockwise, negative for anti-clockwise).
      */
     public void spiralToXY( final double _dxEnd, final double _dyEnd, final double _dxCenter, final double _dyCenter, final int _turns ) {
-        spiralTo( Point.fromXY( _dxEnd, _dyEnd ), Point.fromXY( _dxCenter, _dyCenter ), _turns );
+        spiralTo( Point.fromXY( _dxEnd, _dyEnd ), Point.fromXY( _dxCenter, _dyCenter ), 0, _turns );
     }
 
 
@@ -197,7 +199,7 @@ public class DrawingContext {
      * @param _turns the number of complete turns (positive for clockwise, negative for anti-clockwise).
      */
     public void spiralToRT( final double _drEnd, final double _dtEnd, final double _drCenter, final double _dtCenter, final int _turns ) {
-        spiralTo( Point.fromRT( _drEnd, _dtEnd ), Point.fromRT( _drCenter, _dtCenter ), _turns );
+        spiralTo( Point.fromRT( _drEnd, _dtEnd ), Point.fromRT( _drCenter, _dtCenter ), 0, _turns );
     }
 
 
@@ -346,10 +348,22 @@ public class DrawingContext {
 
 
     /**
-     * Draws a straight line from the current position to the center.
+     * Draws a straight line from the current position to the table center at the same theta as the current position.
      */
     public void home() {
-        lineToXY( -currentPosition.getX(), -currentPosition.getY() );
+        Position np = new PolarPosition( 0, currentPosition.getTheta() );
+        vertices.add( np );
+        currentPosition = np;
+    }
+
+
+    /**
+     * Arc around the table center by the given angle.  The rho is not changed.
+     */
+    public void arcAroundTableCenter( final double _theta ) {
+        Position np = new PolarPosition( currentPosition.getRho(), currentPosition.getTheta() + _theta );
+        vertices.add( np );
+        currentPosition = np;
     }
 
 
@@ -363,30 +377,55 @@ public class DrawingContext {
     }
 
 
-    private static final DecimalFormat THETA_FORMAT = new DecimalFormat( "#.########" );
-    private static final DecimalFormat RHO_FORMAT = new DecimalFormat( "#.########" );
-
+    // TODO: add log...
     public void write( final String _fileName ) throws IOException {
-        // TODO: clamp at rho == 1...
-        // TODO: optimize by removing points along circle (esp. at rho == 1)...
-        // TODO: add log...
+
+        massage();
 
         Position current = Position.CENTER;
         StringBuilder out = new StringBuilder();
         for( Position position : vertices ) {
-            out.append( THETA_FORMAT.format( position.getTheta() ) );
-            out.append( ' ' );
-            out.append( RHO_FORMAT.format( position.getRho() ) );
-            out.append( '\n' );
+            emit( out, position );
         }
-        out.append( vertices.get( vertices.size() - 1 ).toVertice() );  // repeat the last vertice; we don't know why this is needed...
         Path path = new File( _fileName ).toPath();
         byte[] bytes = out.toString().getBytes();
         Files.write( path, bytes );
     }
 
 
-    // TODO: actually emulate the Sisyphus table's motion?
+    // TODO: optimize by removing points along circle (esp. at rho == 1)...
+    // do several things to make sure the .thr file is safe and optimal...
+    private void massage() {
+
+        // if the last entry is not identical to the preceding one, make it so...
+        // this seems to make it certain that a track reverses when it hits the end...
+        int last = vertices.size() - 1;
+        if( vertices.get( last ) != vertices.get( last - 1 ) )
+            vertices.add( vertices.get( last ) );
+
+        // clamp all vertice rho values to the range [0..1]...
+        for( int i = 0; i < vertices.size(); i++ ) {
+
+            Position vertice = vertices.get( i );
+            double clampedRho = Math.max( 0, Math.min( 1, vertice.getRho() ) );
+            if( vertice.getRho() == clampedRho )
+                continue;
+            vertices.set( i, new PolarPosition( clampedRho, vertice.getTheta() ) );
+        }
+    }
+
+
+    private static final DecimalFormat THETA_FORMAT = new DecimalFormat( "#.########" );
+    private static final DecimalFormat RHO_FORMAT   = new DecimalFormat( "#.########" );
+
+    private void emit( final StringBuilder _out, final Position _vertice ) {
+        _out.append( THETA_FORMAT.format( _vertice.getTheta() ) );
+        _out.append( ' ' );
+        _out.append( RHO_FORMAT.format( _vertice.getRho() ) );
+        _out.append( '\n' );
+    }
+
+
     public void renderPNG( final String _fileName ) throws IOException {
 
         int width  = 1 + 2 * pixelsPerRho;
@@ -406,21 +445,30 @@ public class DrawingContext {
         double cy = 0;
         for( int i = 1; i < vertices.size(); i++ ) {
 
+            if( i == 190 )
+                hashCode();
+
             // get our from and to, and delta theta...
-            Position from = vertices.get( i - 1 );
-            Position to = vertices.get( i );
-            double dTheta = to.getTheta() - from.getTheta();
+            Position fromPos = vertices.get( i - 1 );
+            Position toPos = vertices.get( i );
+            Point from = Point.fromPosition( fromPos );
+            Point to   = Point.fromPosition( toPos );
+            double dTheta = toPos.getTheta() - fromPos.getTheta();
 
-            // if the distance is zero and we didn't have a circle, just move to the next one...
-            if( (from.distanceFrom( to ) < 0.001) && (Math.abs( dTheta ) < 0.001) ) continue;
+            // if the distance is zero and we don't have a full circle, just move to the next one...
+            if( (from.distanceFrom( to ) < 0.0001) && ( Math.abs( Utils.normalizeTheta( dTheta ) ) > 0.0001 ) ) continue;
 
-            // calculate our spiral's parameters...
+            // calculate our spiral's turns...
             int t = Utils.getTurnsFromTheta( dTheta );
-            double ex = to.deltaX( from );
-            double ey = to.deltaY( from );
+
+            // figure out our center theta, if either the from or to points are at the center...
+            double centerTheta = 0;  // the default...
+            if( from.rho < 1E-10 ) centerTheta = Utils.normalizeTheta( from.theta );
+            if( to.rho < 1E-10 ) centerTheta = Utils.normalizeTheta( to.theta );
 
             // draw a spiral line for each pair of points within the Sisyphus line...
-            Line line = new ArithmeticSpiral( 10.0/width, ex, ey, -from.getX(), -from.getY(), t );
+            Point center = Point.fromRT( from.rho, from.theta - Math.PI );
+            Line line = new ArithmeticSpiral( 10.0/width, from.vectorTo( to ), center, centerTheta, t );
             List<Delta> deltas = line.getDeltas();
             int xFrom = pixelize( cx );
             int yFrom = pixelize( -cy );
