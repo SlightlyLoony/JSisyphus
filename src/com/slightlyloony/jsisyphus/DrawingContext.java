@@ -445,9 +445,6 @@ public class DrawingContext {
         double cy = 0;
         for( int i = 1; i < vertices.size(); i++ ) {
 
-            if( i == 190 )
-                hashCode();
-
             // get our from and to, and delta theta...
             Position fromPos = vertices.get( i - 1 );
             Position toPos = vertices.get( i );
@@ -525,6 +522,16 @@ public class DrawingContext {
             fitter.generateVertices();
             vertices.addAll( fitter.getVertices() );
         }
+    }
+
+
+    /**
+     * Returns a marker for the current position.
+     *
+     * @return a marker for the current position.
+     */
+    public Marker marker() {
+        return new Marker( currentPosition, this );
     }
 
 

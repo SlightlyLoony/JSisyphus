@@ -16,6 +16,7 @@ public class Main {
         new Petalar().traceIfNeeded();
         new NestedBubbles(  ).traceIfNeeded();
         new SwoopyRadiance().traceIfNeeded();
-        new PolarValentine().trace();
+        new PolarValentine().traceIfNeeded();
+        new BunchOfValentines().trace();
     }
 }
