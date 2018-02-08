@@ -20,12 +20,12 @@ public class BunchOfValentines extends ATrack {
     private static final double V1A = toRadians( -10 );
     private static final double V2A = toRadians( 25 );
 
-    private final Heart heart;
+    private final HeartDef heart;
 
 
     public BunchOfValentines() {
         super( "BunchOfValentines" );
-        heart = new Heart( dc );
+        heart = new HeartDef( dc );
     }
 
 
@@ -80,7 +80,7 @@ public class BunchOfValentines extends ATrack {
         double sf = _initialSF;
         while( sf < _finalSF ) {
 
-            heart.draw( sf );
+            heart.draw( "bottom", sf );
             double nsf = sf * 1.06;
             dc.lineToRT( (nsf - sf) / 2, PI );
             sf = nsf;

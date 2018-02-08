@@ -74,6 +74,41 @@ public class Point {
     }
 
 
+    public Point invertX() {
+        return Point.fromXY( -x, y );
+    }
+
+
+    public Point invertY() {
+        return Point.fromXY( x, -y );
+    }
+
+
+    public Point invertXY() {
+        return Point.fromXY( -x, -y );
+    }
+
+
+    public Point invertRho() {
+        return Point.fromRT( -rho, theta );
+    }
+
+
+    public Point invertTheta() {
+        return Point.fromRT( rho, -theta );
+    }
+
+
+    public Point oppositeTheta() {
+        return Point.fromRT( rho, theta + PI );
+    }
+
+
+    public Point scale( final double _scaleFactor ) {
+        return Point.fromXY( x * _scaleFactor, y * _scaleFactor );
+    }
+
+
     /**
      * Returns a new instance of this class that is rotated by the given angle from this instance.
      *

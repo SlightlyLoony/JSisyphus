@@ -36,6 +36,7 @@ public class DrawingContext {
     private double fitToleranceRho;
     private int pixelsPerRho;
     private Position currentPosition;
+    private Point currentRelativePosition;
     private double currentRotation;
     private double eraseSpacing;  // the erase spiral radial spacing in meters...
     private boolean mute = false;
@@ -58,6 +59,7 @@ public class DrawingContext {
         pixelsPerRho = DEFAULT_PIXELS_PER_RHO;
         eraseSpacing = DEFAULT_ERASE_SPACING;
         currentRotation = 0;
+        currentRelativePosition = Point.fromXY( 0, 0 );
     }
 
 
@@ -504,7 +506,13 @@ public class DrawingContext {
         points.add( currentPosition );
 
         // calculate all the actual table positions for the deltas in our line...
+        double cumDX = 0;
+        double cumDY = 0;
         for( Delta delta : deltas ) {
+
+            // accumulate the delta x and y...
+            cumDX += delta.x;
+            cumDY += delta.y;
 
             // apply our rotation...
             double r = Math.hypot( delta.x, delta.y );
@@ -512,16 +520,37 @@ public class DrawingContext {
             double x = r * Math.sin( t );
             double y = r * Math.cos( t );
 
-            // add the current position...
+            // update the current position and accumulate the point...
             currentPosition = currentPosition.fromDeltaXY( x, y );
             points.add( currentPosition );
         }
+
+        // update the current relative position...
+        currentRelativePosition = currentRelativePosition.sum( Point.fromXY( cumDX, cumDY ) );
 
         if( !mute ) {
             SisyphusFitter fitter = new SisyphusFitter( points, this );
             fitter.generateVertices();
             vertices.addAll( fitter.getVertices() );
         }
+    }
+
+
+    /**
+     * Sets the current relative position to x,y 0,0.
+     */
+    public void zeroCurrentRelativePosition() {
+        currentRelativePosition = Point.fromXY( 0, 0 );
+    }
+
+
+    /**
+     * Returns the current relative position.
+     *
+     * @return the current relative position.
+     */
+    public Point getCurrentRelativePosition() {
+        return currentRelativePosition;
     }
 
 
