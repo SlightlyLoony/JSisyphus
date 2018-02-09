@@ -545,6 +545,16 @@ public class DrawingContext {
 
 
     /**
+     * Sets the current relative position to the given point.
+     *
+     * @param _position the new current relative position.
+     */
+    public void setCurrentRelativePosition( final Point _position ) {
+        currentRelativePosition = _position;
+    }
+
+
+    /**
      * Returns the current relative position.
      *
      * @return the current relative position.
