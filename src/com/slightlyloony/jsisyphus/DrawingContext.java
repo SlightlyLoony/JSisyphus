@@ -16,6 +16,9 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.Math.*;
+import static java.lang.Math.PI;
+
 /**
  * Provides a drawing context for the Sisyphus table, supporting drawing with translation and rotation.
  *
@@ -88,7 +91,7 @@ public class DrawingContext {
 
         // figure out how many turns to make...
         double drhopt = eraseSpacing / model.tableRadiusMeters();        // gives us the change in rho per turn...
-        int turns = (int) Math.floor( Math.abs( dsRho / drhopt ));       // gives us the number of turns we'll actually need...
+        int turns = (int) floor( abs( dsRho / drhopt ));       // gives us the number of turns we'll actually need...
         if( dsTheta < 0 ) turns = -turns;                                // correct for the direction...
         if( (_end.theta == 0) && (currentPosition.getRho() > 0) ) turns = -turns;
 
@@ -343,9 +346,10 @@ public class DrawingContext {
      * @param _orbits the number of orbits to make.
      */
     public void orbit( final int _orbits ) {
-        for( int i = 0; i < Math.abs( _orbits ); i++ ) {
-            arcAroundXY( -currentPosition.getX(), -currentPosition.getY(), ((_orbits < 0) ? -2 : 2) * Math.PI );
-        }
+        double theta = _orbits * 2 * PI;
+        Position np = new PolarPosition( currentPosition.getRho(), theta );
+        vertices.add( np );
+        currentPosition = np;
     }
 
 
@@ -409,7 +413,7 @@ public class DrawingContext {
         for( int i = 0; i < vertices.size(); i++ ) {
 
             Position vertice = vertices.get( i );
-            double clampedRho = Math.max( 0, Math.min( 1, vertice.getRho() ) );
+            double clampedRho = max( 0, min( 1, vertice.getRho() ) );
             if( vertice.getRho() == clampedRho )
                 continue;
             vertices.set( i, new PolarPosition( clampedRho, vertice.getTheta() ) );
@@ -455,7 +459,7 @@ public class DrawingContext {
             double dTheta = toPos.getTheta() - fromPos.getTheta();
 
             // if the distance is zero and we don't have a full circle, just move to the next one...
-            if( (from.distanceFrom( to ) < 0.0001) && ( Math.abs( Utils.normalizeTheta( dTheta ) ) > 0.0001 ) ) continue;
+            if( (from.distanceFrom( to ) < 0.0001) && ((dTheta == 0) || ( abs( Utils.normalizeTheta( dTheta ) ) > 0.0001 ) ) ) continue;
 
             // calculate our spiral's turns...
             int t = Utils.getTurnsFromTheta( dTheta );
@@ -466,7 +470,7 @@ public class DrawingContext {
             if( to.rho < 1E-10 ) centerTheta = Utils.normalizeTheta( to.theta );
 
             // draw a spiral line for each pair of points within the Sisyphus line...
-            Point center = Point.fromRT( from.rho, from.theta - Math.PI );
+            Point center = Point.fromRT( from.rho, from.theta - PI );
             Line line = new ArithmeticSpiral( 10.0/width, from.vectorTo( to ), center, centerTheta, t );
             List<Delta> deltas = line.getDeltas();
             int xFrom = pixelize( cx );
@@ -489,7 +493,7 @@ public class DrawingContext {
 
 
     private int pixelize( double _value ) {
-        return pixelsPerRho + (int) Math.round( _value * pixelsPerRho );
+        return pixelsPerRho + (int) round( _value * pixelsPerRho );
     }
 
 
@@ -515,10 +519,10 @@ public class DrawingContext {
             cumDY += delta.y;
 
             // apply our rotation...
-            double r = Math.hypot( delta.x, delta.y );
+            double r = hypot( delta.x, delta.y );
             double t = Utils.getTheta( delta.x, delta.y ) + currentRotation;
-            double x = r * Math.sin( t );
-            double y = r * Math.cos( t );
+            double x = r * sin( t );
+            double y = r * cos( t );
 
             // update the current position and accumulate the point...
             currentPosition = currentPosition.fromDeltaXY( x, y );

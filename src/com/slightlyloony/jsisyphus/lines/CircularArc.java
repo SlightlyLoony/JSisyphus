@@ -30,7 +30,8 @@ public class CircularArc extends ALine implements Line {
     private static List<Delta> getDeltas( final double _maxPointDistance, final double _arcAngle,
                                           final double _xCenter, final double _yCenter, final double _radius ) {
 
-        double arclen = _radius * abs( _arcAngle );
+        int turns = Utils.getTurnsFromTheta( _arcAngle );
+        double arclen = _radius * abs( _arcAngle ) + 2 * PI * abs( turns);
         int numSegments = (int) ceil( arclen / _maxPointDistance );
         double startAngle = Utils.getTheta( -_xCenter, -_yCenter );
         double lastX = 0;
