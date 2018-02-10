@@ -403,11 +403,13 @@ public class DrawingContext {
     // do several things to make sure the .thr file is safe and optimal...
     private void massage() {
 
-        // if the last entry is not identical to the preceding one, make it so...
-        // this seems to make it certain that a track reverses when it hits the end...
-        int last = vertices.size() - 1;
-        if( vertices.get( last ) != vertices.get( last - 1 ) )
-            vertices.add( vertices.get( last ) );
+        // add two identical entries, forcing the rho to be either 0 or 1 (whichever is closer)
+        // learned from Bruce Shapiro that NOT doing this could introduce positioning errors...
+        Position last = vertices.get( vertices.size() - 1 );
+        double endRho = (last.getRho() >= 0.5) ? 1 : 0;
+        Position term = new PolarPosition( endRho, last.getTheta() );
+        vertices.add( term );
+        vertices.add( term );
 
         // clamp all vertice rho values to the range [0..1]...
         for( int i = 0; i < vertices.size(); i++ ) {
