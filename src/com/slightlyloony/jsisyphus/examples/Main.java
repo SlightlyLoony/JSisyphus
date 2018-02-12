@@ -19,6 +19,8 @@ public class Main {
         new SineVsBezier()          .traceIfNeeded();
         new SineVsBezier2()         .traceIfNeeded();
         new SpiralGyrations()       .traceIfNeeded();
-        new RhoOffsetCalibration()  .trace();
+        new RhoOffsetCalibration()  .traceIfNeeded();
+        new SpiralBezier()          .traceIfNeeded();
+        new BurstyBezier()          .traceIfNeeded();
     }
 }

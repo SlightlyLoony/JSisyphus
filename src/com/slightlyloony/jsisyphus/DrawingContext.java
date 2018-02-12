@@ -434,10 +434,12 @@ public class DrawingContext {
     }
 
 
+    private static final int BORDER_WIDTH = 100;
+
     public void renderPNG( final String _fileName ) throws IOException {
 
-        int width  = 1 + 2 * pixelsPerRho;
-        int height = 1 + 2 * pixelsPerRho;
+        int width  = 1 + 2 * BORDER_WIDTH + 2 * pixelsPerRho;
+        int height = 1 + 2 * BORDER_WIDTH + 2 * pixelsPerRho;
 
         BufferedImage bi = new BufferedImage( width, height, BufferedImage.TYPE_4BYTE_ABGR );
 
@@ -445,7 +447,7 @@ public class DrawingContext {
         g.setColor( Color.lightGray );
         g.fillRect( 0, 0, width, height );
         g.setColor( Color.WHITE );
-        g.fillOval( 0, 0, width, height );
+        g.fillOval( BORDER_WIDTH, BORDER_WIDTH, width - 2 * BORDER_WIDTH, height - 2 * BORDER_WIDTH );
         g.setColor( Color.BLACK );
 
         // draw a spiral line for each path we have...
@@ -495,7 +497,7 @@ public class DrawingContext {
 
 
     private int pixelize( double _value ) {
-        return pixelsPerRho + (int) round( _value * pixelsPerRho );
+        return BORDER_WIDTH + pixelsPerRho + (int) round( _value * pixelsPerRho );
     }
 
 
@@ -567,6 +569,17 @@ public class DrawingContext {
      */
     public Point getCurrentRelativePosition() {
         return currentRelativePosition;
+    }
+
+
+    /**
+     * Returns a vector from the current relative position to the given relative position.
+     *
+     * @param _destination the relative position to get a vector to.
+     * @return the vector to the destination position.
+     */
+    public Point vectorTo( final Point _destination ) {
+        return currentRelativePosition.vectorTo( _destination );
     }
 
 
