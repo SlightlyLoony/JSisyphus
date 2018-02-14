@@ -70,7 +70,7 @@ public class Point {
      * @return a new instance of this class that is the vector from this instance to the given instance.
      */
     public Point vectorTo( final Point _a ) {
-        return fromXY( _a.x -x, _a.y - y );
+        return fromXY( _a.x - x, _a.y - y );
     }
 
 

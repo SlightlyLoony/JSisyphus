@@ -462,6 +462,9 @@ public class DrawingContext {
             Point to   = Point.fromPosition( toPos );
             double dTheta = toPos.getTheta() - fromPos.getTheta();
 
+            if( to.rho > 0.48 )
+                hashCode();
+
             // if the distance is zero and we don't have a full circle, just move to the next one...
             if( (from.distanceFrom( to ) < 0.0001) && ((dTheta == 0) || ( abs( Utils.normalizeTheta( dTheta ) ) > 0.0001 ) ) ) continue;
 
@@ -474,7 +477,7 @@ public class DrawingContext {
             if( to.rho < 1E-10 ) centerTheta = Utils.normalizeTheta( to.theta );
 
             // draw a spiral line for each pair of points within the Sisyphus line...
-            Point center = Point.fromRT( from.rho, from.theta - PI );
+            Point center = Point.fromRT( from.rho, from.theta + PI );
             Line line = new ArithmeticSpiral( 10.0/width, from.vectorTo( to ), center, centerTheta, t );
             List<Delta> deltas = line.getDeltas();
             int xFrom = pixelize( cx );
@@ -589,7 +592,7 @@ public class DrawingContext {
      * @return a marker for the current position.
      */
     public Marker marker() {
-        return new Marker( currentPosition, this );
+        return new Marker( currentRelativePosition, this );
     }
 
 

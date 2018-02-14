@@ -22,5 +22,7 @@ public class Main {
         new RhoOffsetCalibration()  .traceIfNeeded();
         new SpiralBezier()          .traceIfNeeded();
         new BurstyBezier()          .traceIfNeeded();
+        new BinarySupport()         .traceIfNeeded();
+        new OrderlyTransition()     .trace();
     }
 }

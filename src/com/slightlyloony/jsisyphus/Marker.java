@@ -1,7 +1,5 @@
 package com.slightlyloony.jsisyphus;
 
-import com.slightlyloony.jsisyphus.positions.Position;
-
 /**
  * Instances of this class can produce Point instances that represent vectors from the current position to the marked position.  Instances of this class are
  * immutable and threadsafe.
@@ -10,11 +8,11 @@ import com.slightlyloony.jsisyphus.positions.Position;
  */
 public class Marker {
 
-    private final Position marker;
+    private final Point marker;
     private final DrawingContext dc;
 
 
-    public Marker( final Position _marker, final DrawingContext _dc ) {
+    public Marker( final Point _marker, final DrawingContext _dc ) {
         marker = _marker;
         dc = _dc;
     }
@@ -26,8 +24,8 @@ public class Marker {
      * @return the vector to the marked position.
      */
     public Point vectorTo() {
-        Point from = Point.fromPosition( dc.getCurrentPosition() );
-        Point to = Point.fromPosition( marker );
+        Point from = dc.getCurrentRelativePosition();
+        Point to = marker;
         return from.vectorTo( to );
     }
 }
