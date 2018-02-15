@@ -264,7 +264,8 @@ public class SisyphusFitter {
             // look up our new sub-segment...
             SegResult sr = SEG_RESULTS[ddp];
             if( sr.error ) {
-                logState( "Impossible segment analysis result: " + ddp, _testPoint, _st );
+                if( LOG_LEVEL > 1 )
+                    logState( "Impossible segment analysis result: " + ddp, _testPoint, _st );
                 return logFail( _p, MAX_ITERATIONS );
             }
             _st[0].theta = _st[sr.start].theta;
