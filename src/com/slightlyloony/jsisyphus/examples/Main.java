@@ -23,6 +23,7 @@ public class Main {
         new SpiralBezier()          .traceIfNeeded();
         new BurstyBezier()          .traceIfNeeded();
         new BinarySupport()         .traceIfNeeded();
-        new OrderlyTransition()     .trace();
+        new OrderlyTransition()     .traceIfNeeded();
+        new NeilHTest()             .trace();
     }
 }
