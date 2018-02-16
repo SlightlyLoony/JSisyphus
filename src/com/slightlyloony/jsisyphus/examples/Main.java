@@ -24,6 +24,5 @@ public class Main {
         new BurstyBezier()          .traceIfNeeded();
         new BinarySupport()         .traceIfNeeded();
         new OrderlyTransition()     .traceIfNeeded();
-        new NeilHTest()             .trace();
     }
 }
