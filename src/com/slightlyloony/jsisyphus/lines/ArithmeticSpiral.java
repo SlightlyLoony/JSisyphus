@@ -48,8 +48,8 @@ public class ArithmeticSpiral extends ALine implements Line {
             from = center;
             fromIsCenter = true;
         }
-        if( center.distanceFrom( _end ) < 1E-10 ) {
-            to = from.sum( center );
+        if( center.distanceFrom( to ) < 1E-10 ) {
+            to = center;
             toIsCenter = true;
         }
 
