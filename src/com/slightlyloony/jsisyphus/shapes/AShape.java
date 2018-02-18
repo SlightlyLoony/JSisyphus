@@ -22,24 +22,24 @@ public abstract class AShape {
     protected DrawingContext dc;
 
 
-    protected AShape( final AShapeDef _def, final double _scaleFactor, final String _anchor ) {
+    protected AShape( final AShapeDef _def, final double _scaleFactor, final double _rotation, final String _anchor ) {
         anchor = _anchor;
         dc = _def.dc;
 
-        // get our anchor and compute the offsets...
+        // get our anchor...
         Point anchor = _def.points.get( _anchor );
-        double offsetX = -anchor.x;
-        double offsetY = -anchor.y;
 
-        // build our points by referencing and scaling all the definition's points...
+        // build our points by referencing and scaling and rotating all the definition's points...
         Map<String,Point> result = new HashMap<>( 3 * _def.points.size() );
         for( final Map.Entry<String, Point> entry : _def.points.entrySet() ) {
-            points.put( entry.getKey(), anchor.vectorTo( entry.getValue() ).scale( _scaleFactor ) );
+            Point scaled = anchor.vectorTo( entry.getValue() ).scale( _scaleFactor );
+            Point rotated = scaled.rotate( _rotation );
+            points.put( entry.getKey(), dc.getCurrentRelativePosition().sum( rotated ) );
         }
 
-        // build our vectors by scaling all the definition's vectors...
+        // build our vectors by scaling and rotating all the definition's vectors...
         for( final Map.Entry<String, Point> entry : _def.vectors.entrySet() ) {
-            vectors.put( entry.getKey(), entry.getValue().scale( _scaleFactor ) );
+            vectors.put( entry.getKey(), entry.getValue().scale( _scaleFactor ).rotate( _rotation ) );
         }
 
         // build our scalars by scaling all the definition's scalars...

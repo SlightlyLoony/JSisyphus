@@ -75,5 +75,5 @@ public abstract class AShapeDef {
     }
 
 
-    public abstract void draw( final String _anchorPoint, final double _scaleFactor );
+    public abstract void draw( final String _anchorPoint, final double _scaleFactor, final double _rotation );
 }

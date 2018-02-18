@@ -8,7 +8,7 @@ import com.slightlyloony.jsisyphus.shapes.AShape;
 public class Heart extends AShape {
 
 
-    public Heart( final HeartDef _def, final double _scaleFactor, final String _anchor ) {
-        super( _def, _scaleFactor, _anchor );
+    public Heart( final HeartDef _def, final double _scaleFactor, final double _rotation, final String _anchor ) {
+        super( _def, _scaleFactor, _rotation, _anchor );
     }
 }

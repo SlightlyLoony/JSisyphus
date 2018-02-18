@@ -56,13 +56,16 @@ class HeartDef extends AShapeDef {
 
 
     @Override
-    public void draw( final String _anchor, final double _scaleFactor ) {
+    public void draw( final String _anchor, final double _scaleFactor, final double _rotation ) {
+
+//        // remember our original relative position...
+//        Point orig = dc.getCurrentRelativePosition();
 
         // get a scaled heart definition...
-        Heart heart = new Heart( this, _scaleFactor, _anchor );
+        Heart heart = new Heart( this, _scaleFactor, _rotation, _anchor );
 
-        // start us at the relative center...
-        dc.zeroCurrentRelativePosition();
+//        // start us at the relative center...
+//        dc.zeroCurrentRelativePosition();
 
         // curve up and to the right lobe...
         dc.curveTo( heart.cp( "right point cp" ), heart.cp( "right joint cp" ), heart.to( "right joint" ) );
@@ -75,5 +78,8 @@ class HeartDef extends AShapeDef {
 
         // finally down and right to the origin...
         dc.curveTo( heart.cp( "left joint cp" ), heart.cp( "left point cp" ), heart.to( "bottom" ) );
+
+//        // restore our original relative position...
+//        dc.setCurrentRelativePosition( orig );
     }
 }

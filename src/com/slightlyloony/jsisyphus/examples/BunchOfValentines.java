@@ -33,56 +33,52 @@ public class BunchOfValentines extends ATrack {
 
         Triangle ground = Triangle.fromSAS( 1, 2 * PI - 2 * GA, 1 );
 
-        dc.eraseTo( Point.fromRT( 1, toRadians( 150 ) ) );
+        eraseTo( Point.fromRT( 1, toRadians( 150 ) ) );
 
         // draw the ground line...
-        dc.lineToRT( ground.sideB, -PI / 2 );
+        lineToRT( ground.sideB, -PI / 2 );
 
         // draw the first one...
-        dc.lineToRT( .05, PI/2 );
-        dc.curveToRT( .1, 0, .1, V1A + PI, .2, toRadians( -10 ) );
-        Marker marker = dc.marker();
-        dc.lineToRT( .5, V1A );
-        dc.rotateBy( V1A );
-        drawHeart( .04, .4 );
-        dc.rotateBy( -V1A );
-        dc.lineTo( marker.vectorTo() );
-        dc.curveToRT( .1, V1A + PI, .1, 0, .2, toRadians( -10 ) + PI );
+        lineToRT( .05, PI/2 );
+        curveToRT( .1, 0, .1, V1A + PI, .2, toRadians( -10 ) );
+        Marker marker = marker();
+        lineToRT( .5, V1A );
+        drawHeart( .04, .4, V1A );
+        lineTo( marker.vectorTo() );
+        curveToRT( .1, V1A + PI, .1, 0, .2, toRadians( -10 ) + PI );
 
         // draw the second one...
-        dc.lineToRT( .15, PI/2 );
-        dc.lineToRT( .3, 0 );
-        Marker marker2 = dc.marker();
-        dc.curveToRT( .1, 0, .1, V2A + PI, .5, toRadians( 5 ) );
-        marker = dc.marker();
-        dc.lineToRT( .5, V2A );
-        dc.rotateBy( V2A );
-        drawHeart( .04, .5 );
-        dc.rotateBy( -V2A );
-        dc.lineTo( marker.vectorTo() );
-        dc.curveToRT( .1, V2A + PI, .1, 0, marker2.vectorTo().rho, marker2.vectorTo().theta );
-        dc.lineToRT( .3, PI );
+        lineToRT( .15, PI/2 );
+        lineToRT( .3, 0 );
+        Marker marker2 = marker();
+        curveToRT( .1, 0, .1, V2A + PI, .5, toRadians( 5 ) );
+        marker = marker();
+        lineToRT( .5, V2A );
+        drawHeart( .04, .5, V2A );
+        lineTo( marker.vectorTo() );
+        curveToRT( .1, V2A + PI, .1, 0, marker2.vectorTo().rho, marker2.vectorTo().theta );
+        lineToRT( .3, PI );
 
         // draw the third one...
-        dc.lineToRT( .6, PI/2 );
-        marker = dc.marker();
-        dc.lineToRT( .4, 0 );
-        drawHeart( .04, .6 );
-        dc.lineTo( marker.vectorTo() );
+        lineToRT( .6, PI/2 );
+        marker = marker();
+        lineToRT( .4, 0 );
+        drawHeart( .04, .6, 0 );
+        lineTo( marker.vectorTo() );
 
 
-        dc.renderPNG( pngFileName );
-        dc.write( trackFileName );
+        renderPNG( pngFileName );
+        write( trackFileName );
     }
 
 
-    private void drawHeart( final double _initialSF, final double _finalSF ) {
+    private void drawHeart( final double _initialSF, final double _finalSF, final double _rotation ) {
         double sf = _initialSF;
         while( sf < _finalSF ) {
 
-            heart.draw( "bottom", sf );
+            heart.draw( "bottom", sf, _rotation );
             double nsf = sf * 1.06;
-            dc.lineToRT( (nsf - sf) / 2, PI );
+            lineToRT( (nsf - sf) / 2, _rotation + PI );
             sf = nsf;
         }
     }

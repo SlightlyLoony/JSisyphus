@@ -24,29 +24,30 @@ public class PolarValentine extends ATrack {
     public void trace() throws IOException {
 
         HeartDef heart = new HeartDef( dc );
+        double angle = 0;
 
-        dc.spiralTo( Point.fromRT( 1, 0 ), Point.fromRT( 0,0 ), 0, 1 );
-        dc.eraseTo( Point.fromRT( 1, PI ) );
+        spiralTo( Point.fromRT( 1, 0 ), Point.fromRT( 0,0 ), 0, 1 );
+        eraseTo( Point.fromRT( 1, PI ) );
 
         for( int i = 0; i < STICKS; i++ ) {
 
-            dc.lineToRT( .4, 0 );
+            lineToRT( .4, angle );
 
             double sf = 0.02;
             while( sf < 0.6 ) {
 
-                heart.draw( "bottom", sf );
+                heart.draw( "bottom", sf, angle );
                 double nsf = sf * 1.06;
-                dc.lineToRT( (nsf - sf) / 2, PI );
+                lineToRT( (nsf - sf) / 2, angle + PI );
                 sf = nsf;
             }
 
-            dc.home();
-            dc.arcAroundTableCenter( 2 * PI / STICKS );
-            dc.rotateBy( 2 * PI / STICKS );
+            home();
+            arcAroundTableCenter( angle + 2 * PI / STICKS );
+            angle += 2 * PI / STICKS;
         }
 
-        dc.renderPNG( pngFileName );
-        dc.write( trackFileName );
+        renderPNG( pngFileName );
+        write( trackFileName );
     }
 }
