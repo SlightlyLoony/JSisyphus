@@ -91,8 +91,10 @@ public class DrawingContext {
 
         // figure out how many turns to make...
         double drhopt = eraseSpacing / model.tableRadiusMeters();        // gives us the change in rho per turn...
-        int turns = (int) floor( abs( dsRho / drhopt ));       // gives us the number of turns we'll actually need...
+        int turns = (int) ceil( abs( dsRho / drhopt ));                  // gives us the number of turns we'll actually need...
         if( dsTheta < 0 ) turns = -turns;                                // correct for the direction...
+
+        // erase in the opposite direction of how the table is wound up...
         if( (_end.theta == 0) && (currentPosition.getRho() > 0) ) turns = -turns;
 
         Line line = new ArithmeticSpiral( maxPointDistance, _end, Point.fromXY( -currentPosition.getX(), -currentPosition.getY() ), 0, turns );
@@ -462,9 +464,6 @@ public class DrawingContext {
             Point to   = Point.fromPosition( toPos );
             double dTheta = toPos.getTheta() - fromPos.getTheta();
 
-            if( to.rho > 0.48 )
-                hashCode();
-
             // if the distance is zero and we don't have a full circle, just move to the next one...
             if( (from.distanceFrom( to ) < 0.0001) && ((dTheta == 0) || ( abs( Utils.normalizeTheta( dTheta ) ) > 0.0001 ) ) ) continue;
 
@@ -482,9 +481,8 @@ public class DrawingContext {
             List<Delta> deltas = line.getDeltas();
             int xFrom = pixelize( cx );
             int yFrom = pixelize( -cy );
-            for( int j = 0; j < deltas.size(); j++ ) {
+            for( Delta delta : deltas ) {
 
-                Delta delta = deltas.get( j );
                 cx += delta.x;
                 cy += delta.y;
                 int xTo = pixelize( cx );
@@ -583,6 +581,16 @@ public class DrawingContext {
      */
     public Point vectorTo( final Point _destination ) {
         return currentRelativePosition.vectorTo( _destination );
+    }
+
+
+    /**
+     * Returns a vector from the current relative position to the table's center.
+     *
+     * @return a vector from the current relative position to the table's center.
+     */
+    public Point toCenter() {
+        return currentRelativePosition.invertXY();
     }
 
 

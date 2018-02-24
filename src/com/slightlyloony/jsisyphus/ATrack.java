@@ -493,4 +493,14 @@ public abstract class ATrack {
     public double getCurrentRotation() {
         return dc.getCurrentRotation();
     }
+
+
+    /**
+     * Returns a vector from the current relative position to the table's center.
+     *
+     * @return a vector from the current relative position to the table's center.
+     */
+    public Point toCenter() {
+        return dc.toCenter();
+    }
 }

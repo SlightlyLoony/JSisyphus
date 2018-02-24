@@ -59,18 +59,21 @@ public class Utils {
      * @return the normalized angle
      */
     public static double normalizeTheta( final double _theta ) {
-        return _theta - getTurnsFromTheta( _theta ) * Math.PI * 2;
+        int turns = (int) Math.floor( Math.abs( _theta ) / (2 * Math.PI) );
+        turns *= (_theta < 0) ? -1 : 1;
+        return _theta - turns * Math.PI * 2;
     }
 
 
     /**
-     * Returns the number of turns in the given angle.
+     * Returns the number of turns in the given angle.  Zero is returned only if the given angle is zero.  A return value of +1 means from 0 to 1 clockwise
+     * turns; -2 means from 1 to 2 anti-clockwise turns.
      *
      * @param _theta the angle (in radians) to calculate number of turns from.
      * @return the number of turns in the given angle.
      */
     public static int getTurnsFromTheta( final double _theta ) {
-        int turns = (1 + (int) Math.floor( Math.abs( _theta ) / Math.PI )) >> 1;
+        int turns = (int) Math.ceil( Math.abs( _theta ) / (2 * Math.PI ));
         return (_theta < 0) ? -turns : turns;
     }
 

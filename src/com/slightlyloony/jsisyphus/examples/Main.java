@@ -24,5 +24,8 @@ public class Main {
         new BurstyBezier()          .traceIfNeeded();
         new BinarySupport()         .traceIfNeeded();
         new OrderlyTransition()     .traceIfNeeded();
+        new OrbitalMechanics()      .traceIfNeeded();
+        new RandomlyCircular()      .traceIfNeeded();
+        new RandomlyCircular2()     .trace();
     }
 }
